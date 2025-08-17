@@ -2,10 +2,10 @@ package screens
 
 import (
 	"context"
-	"time"
 
 	"github.com/rthornton128/goncurses"
 	"github.com/vector-ops/goships/frames"
+	"github.com/vector-ops/goships/utils"
 )
 
 func ShowLoadingScreen(ctx context.Context, win *goncurses.Window, customFrames *[]string) {
@@ -28,13 +28,12 @@ func ShowLoadingScreen(ctx context.Context, win *goncurses.Window, customFrames 
 
 				y, x := (my-height)/2, (mx-width)/2
 
-				win.Move(0, x)
-				win.ClearToEOL()
 				win.Erase()
+				win.Refresh()
 
 				win.MovePrint(y, x, f)
 				win.Refresh()
-				time.Sleep(300 * time.Millisecond)
+				utils.Delay(300)
 			}
 		}
 	}
