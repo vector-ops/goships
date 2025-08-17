@@ -2,55 +2,80 @@ package screens
 
 import (
 	"context"
-	"time"
+	"log"
 
 	"github.com/rthornton128/goncurses"
+	"github.com/vector-ops/goships/types"
 )
 
-type Menu struct {
-	window  *goncurses.Window
-	options []string
-}
+func ShowMenuScreen(ctx context.Context, menuwin *goncurses.Window) types.GameType {
 
-func NewMenuScreen(win *goncurses.Window, options []string) *Menu {
-	s := &Menu{
-		window:  win,
-		options: options,
+	menu_items := map[types.GameType]string{types.PVE: "play against a bot", types.PVP: "play against other players", types.QUIT: "quit"}
+	items := make([]*goncurses.MenuItem, len(menu_items))
+
+	i := 0
+	var err error
+	for name, desc := range menu_items {
+		items[i], err = goncurses.NewItem(string(name), desc)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer items[i].Free()
+		i++
 	}
 
-	return s
-}
+	menuwin.Keypad(true)
 
-func (s *Menu) Show(ctx context.Context) {
-	loading := true
+	menu, err := goncurses.NewMenu(items)
+	if err != nil {
+		menuwin.Print(err)
+		return types.QUIT
+	}
+	defer menu.Free()
 
-	loadingCtx, cancel := context.WithCancel(ctx)
-	go func() {
-		time.Sleep(60 * time.Second)
-		loading = false
-		cancel()
-	}()
+	menu.SetWindow(menuwin)
+	dwin := menuwin.Derived(6, 38, 3, 1)
+	menu.SubWindow(dwin)
+	menu.Mark(" * ")
+
+	// Print centered menu title
+	_, x := menuwin.MaxYX()
+	title := "Main Menu"
+	menuwin.Box(0, 0)
+	// menuwin.ColorOn(1)
+	menuwin.MovePrint(1, (x/2)-(len(title)/2), title)
+	// menuwin.ColorOff(1)
+	menuwin.MoveAddChar(2, 0, goncurses.ACS_LTEE)
+	menuwin.HLine(2, 1, goncurses.ACS_HLINE, x-2)
+	menuwin.MoveAddChar(2, x-1, goncurses.ACS_RTEE)
+
+	menu.Post()
+	defer menu.UnPost()
+	menuwin.Refresh()
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			if loading {
-				ShowLoadingScreen(loadingCtx, s.window, nil)
-			} else {
-				f := "Welcome to GoShips"
-				my, mx := s.window.MaxYX()
-				width := len(f)
-				height := 1
+		goncurses.Update()
 
-				y, x := (my-height)/2, (mx-width)/2
+		ch := menuwin.GetChar()
 
-				s.window.MovePrint(y, x, f)
-				s.window.Refresh()
-				time.Sleep(300 * time.Millisecond)
-				s.window.Erase()
+		switch goncurses.KeyString(ch) {
+		case "q":
+			return types.QUIT
+
+		case "down":
+			menu.Driver(goncurses.REQ_DOWN)
+		case "up":
+			menu.Driver(goncurses.REQ_UP)
+		case "enter", "return":
+			current := menu.Current(nil)
+			name := current.Name()
+			for k := range menu_items {
+				if string(k) == name {
+					return k
+				}
 			}
+
 		}
 	}
+
 }
