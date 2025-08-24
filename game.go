@@ -73,16 +73,17 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			// }
 
 			gs.EnemyMap.SetEntity(types.Entity{
-				Type:          types.CRUISER,
-				StartPosition: types.Position{X: 2, Y: 2},
-				EndPosition:   types.Position{X: 6, Y: 6},
+				Type:          types.BATTLESHIP,
+				CellType:      types.CELL_BATTLESHIP,
+				StartPosition: types.Position{X: 3, Y: 3},
+				EndPosition:   types.Position{X: 7, Y: 7},
 				Color:         types.COLOR_SHIP,
 				Sprite: map[types.Orientation][]rune{
-					types.HORIZONTAL: {'%', '%', '%', '%'},
-					types.VERTICAL:   {'%', '%', '%', '%'},
+					types.HORIZONTAL: types.BATTLESHIP_SPRITE,
+					types.VERTICAL:   types.BATTLESHIP_SPRITE,
 				},
 			},
-				types.VERTICAL)
+				types.HORIZONTAL)
 			gs.EnemyMap.Render(ctx)
 			gs.PlayerMap.Render(ctx)
 			gs.ScoreBoard.Render(ctx)
