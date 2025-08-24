@@ -70,8 +70,17 @@ type Position struct {
 
 type Entity struct {
 	Type          ShipType
+	CellType      CellType
 	StartPosition Position
 	EndPosition   Position
 	Color         int16
 	Sprite        map[Orientation][]rune
 }
+
+var (
+	CRUISER_SPRITE    = []rune{'C', 'R', 'U', 'Z'}
+	BATTLESHIP_SPRITE = []rune{'B', 'B', 'S', 'H', 'P'}
+	DESTROYER_SPRITE  = []rune{'D', 'D', 'S'}
+	SUBMARINE_SPRITE  = []rune{'S', 'S'}
+	CARRIER_SPRITE    = []rune{'C', 'V', 'S', 'H', 'P'}
+)
