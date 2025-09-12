@@ -25,8 +25,8 @@ func NewGameState(stdscr *goncurses.Window) *GameState {
 		win: stdscr,
 	}
 
-	gs.PlayerMap = NewMap(calculateSubWindow(stdscr, types.PLAYER), nil)
-	gs.EnemyMap = NewMap(calculateSubWindow(stdscr, types.ENEMY), nil)
+	gs.PlayerMap = NewMap(calculateSubWindow(stdscr, types.PLAYER), nil, nil, nil)
+	gs.EnemyMap = NewMap(calculateSubWindow(stdscr, types.ENEMY), nil, nil, nil)
 	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE))
 	gs.bufferWindow = calculateSubWindow(stdscr, types.BUFFER)
 	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)
@@ -34,7 +34,6 @@ func NewGameState(stdscr *goncurses.Window) *GameState {
 }
 
 func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) error {
-
 	loading := false
 	loadingContext, loadingCancel := context.WithCancel(ctx)
 
@@ -75,8 +74,8 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			gs.EnemyMap.SetEntity(types.Entity{
 				Type:          types.BATTLESHIP,
 				CellType:      types.CELL_BATTLESHIP,
-				StartPosition: types.Position{X: 3, Y: 3},
-				EndPosition:   types.Position{X: 7, Y: 7},
+				StartPosition: types.Position{X: 4, Y: 3},
+				EndPosition:   types.Position{X: 7, Y: 3},
 				Color:         types.COLOR_SHIP,
 				Sprite: map[types.Orientation][]rune{
 					types.HORIZONTAL: types.BATTLESHIP_SPRITE,
@@ -92,7 +91,6 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			goncurses.Update()
 		}
 	}
-
 }
 
 func renderBuffer(win *goncurses.Window) {
