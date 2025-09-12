@@ -38,12 +38,12 @@ func main() {
 
 	gc.UseDefaultColors()
 
-	gc.InitPair(types.COLOR_WATER, -1, -1)
+	gc.InitPair(types.COLOR_WATER, gc.C_BLUE, gc.C_BLACK)
 	gc.InitPair(types.COLOR_CURSOR, gc.C_BLACK, gc.C_WHITE)
-	gc.InitPair(types.COLOR_FLAMES, gc.C_RED, -1)
-	gc.InitPair(types.COLOR_WALL, gc.C_WHITE, -1)
-	gc.InitPair(types.COLOR_SHIP, gc.C_GREEN, -1)
-	gc.InitPair(types.COLOR_MISS, gc.C_BLUE, -1)
+	gc.InitPair(types.COLOR_FLAMES, gc.C_RED, gc.C_BLACK)
+	gc.InitPair(types.COLOR_WALL, -1, -1)
+	gc.InitPair(types.COLOR_SHIP, gc.C_GREEN, gc.C_BLACK)
+	gc.InitPair(types.COLOR_MISS, gc.C_BLUE, gc.C_BLACK)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -54,5 +54,4 @@ func main() {
 	if err := game.Render(ctx, cancel); err != nil {
 		log.Fatal(err)
 	}
-
 }
