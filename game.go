@@ -17,9 +17,9 @@ type GameState struct {
 	PlayerMap *Map
 	EnemyMap  *Map
 
-	ScoreBoard   *ScoreBoard
-	bufferWindow *goncurses.Window
-	menuWindow   *goncurses.Window
+	ScoreBoard *ScoreBoard
+	Guide      *Guide
+	menuWindow *goncurses.Window
 }
 
 func NewGameState(stdscr *goncurses.Window) *GameState {
@@ -27,10 +27,10 @@ func NewGameState(stdscr *goncurses.Window) *GameState {
 		win: stdscr,
 	}
 
-	gs.PlayerMap = NewMap(calculateSubWindow(stdscr, types.PLAYER), nil, nil, nil)
-	gs.EnemyMap = NewMap(calculateSubWindow(stdscr, types.ENEMY), nil, nil, nil)
+	gs.PlayerMap = NewMap(calculateSubWindow(stdscr, types.PLAYER), "PLAYER", types.COLOR_TITLE_PLAYER, nil, nil, nil)
+	gs.EnemyMap = NewMap(calculateSubWindow(stdscr, types.ENEMY), "ENEMY", types.COLOR_TITLE_ENEMY, nil, nil, nil)
 	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE))
-	gs.bufferWindow = calculateSubWindow(stdscr, types.BUFFER)
+	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE))
 	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)
 	return gs
 }
@@ -100,17 +100,14 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			if err != nil {
 				return err
 			}
+			err = gs.Guide.Render(ctx)
+			if err != nil {
+				return err
+			}
 
-			renderBuffer(gs.bufferWindow)
 			goncurses.Update()
 		}
 	}
-}
-
-func renderBuffer(win *goncurses.Window) {
-	win.Erase()
-	win.Box(goncurses.ACS_VLINE, goncurses.ACS_HLINE)
-	win.NoutRefresh()
 }
 
 func (gs *GameState) CloseResources() error {
@@ -120,6 +117,7 @@ func (gs *GameState) CloseResources() error {
 		gs.PlayerMap,
 		gs.EnemyMap,
 		gs.ScoreBoard,
+		gs.Guide,
 	} {
 		if err := closer.Close(); err != nil {
 			errs = append(errs, err)
@@ -156,7 +154,7 @@ func calculateSubWindow(win *goncurses.Window, wType types.WindowType) *goncurse
 		y = 0
 		x = 0
 
-	case types.BUFFER:
+	case types.GUIDE:
 		h = my
 		w = mx / 4
 		y = 0
