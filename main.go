@@ -14,19 +14,21 @@ import (
 func main() {
 	stdscr, err := gc.Init()
 	if err != nil {
-		log.Printf("Yes this is error")
 		log.Fatal(err)
 	}
 	defer gc.End()
 
 	h, w := gc.StdScr().MaxYX()
 	if h < 32 || w < 40 {
+		gc.End() // restore terminal
 		fmt.Fprintf(os.Stderr, "Terminal too small. Minimum size: 32x40. Current size: %dx%d\n", h, w)
 		return
 	}
 
 	if err := gc.StartColor(); err != nil {
-		log.Fatal(err)
+		gc.End() // restore terminal
+		fmt.Fprintf(os.Stderr, "Failed to start color mode: %v\n", err)
+		return
 	}
 
 	gc.Echo(false)
@@ -52,6 +54,9 @@ func main() {
 	game := NewGameState(stdscr)
 
 	if err := game.Render(ctx, cancel); err != nil {
-		log.Fatal(err)
+		game.CloseResources()
+		cancel()
+		gc.End() // to restore terminal
+		fmt.Fprintf(os.Stderr, "Error rendering game: %v\n", err)
 	}
 }

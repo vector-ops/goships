@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 
 	"github.com/rthornton128/goncurses"
 	"github.com/vector-ops/goships/screens"
@@ -46,9 +48,8 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 	for {
 		select {
 		case <-ctx.Done():
-			gs.PlayerMap.Close()
-			gs.EnemyMap.Close()
-			gs.ScoreBoard.Close()
+			gs.CloseResources()
+			loadingCancel()
 			return nil
 		default:
 			if loading {
@@ -71,7 +72,7 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			// default:
 			// }
 
-			gs.EnemyMap.SetEntity(types.Entity{
+			err := gs.EnemyMap.SetEntity(types.Entity{
 				Type:          types.BATTLESHIP,
 				CellType:      types.CELL_BATTLESHIP,
 				StartPosition: types.Position{X: 4, Y: 3},
@@ -83,9 +84,22 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 				},
 			},
 				types.HORIZONTAL)
-			gs.EnemyMap.Render(ctx)
-			gs.PlayerMap.Render(ctx)
-			gs.ScoreBoard.Render(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = gs.EnemyMap.Render(ctx)
+			if err != nil {
+				return err
+			}
+			err = gs.PlayerMap.Render(ctx)
+			if err != nil {
+				return err
+			}
+			err = gs.ScoreBoard.Render(ctx)
+			if err != nil {
+				return err
+			}
 
 			renderBuffer(gs.bufferWindow)
 			goncurses.Update()
@@ -97,6 +111,25 @@ func renderBuffer(win *goncurses.Window) {
 	win.Erase()
 	win.Box(goncurses.ACS_VLINE, goncurses.ACS_HLINE)
 	win.NoutRefresh()
+}
+
+func (gs *GameState) CloseResources() error {
+	var errs []error
+
+	for _, closer := range []io.Closer{
+		gs.PlayerMap,
+		gs.EnemyMap,
+		gs.ScoreBoard,
+	} {
+		if err := closer.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to close resources: %v", errs)
+	}
+	return nil
 }
 
 func calculateSubWindow(win *goncurses.Window, wType types.WindowType) *goncurses.Window {
