@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rthornton128/goncurses"
@@ -10,8 +11,10 @@ import (
 )
 
 const (
-	DEFAULT_GRID_WIDTH  = 11
-	DEFAULT_GRID_HEIGHT = 11
+	DEFAULT_GRID_WIDTH  = 9
+	DEFAULT_GRID_HEIGHT = 7
+	CELL_HEIGHT         = 2
+	CELL_WIDTH          = 5
 )
 
 type Cell struct {
@@ -53,7 +56,14 @@ func NewMap(win *goncurses.Window, startingGrid *map[types.Position]Cell, gridWi
 
 func (m *Map) Render(ctx context.Context) error {
 	m.win.Erase()
-	m.win.Box(goncurses.ACS_VLINE, goncurses.ACS_HLINE)
+	err := m.win.Box(goncurses.ACS_VLINE, goncurses.ACS_HLINE)
+	if err != nil {
+		return err
+	}
+	err = m.drawBorders()
+	if err != nil {
+		return err
+	}
 	m.draw()
 	m.win.NoutRefresh()
 	return nil
@@ -61,56 +71,22 @@ func (m *Map) Render(ctx context.Context) error {
 
 func (m *Map) draw() error {
 	my, mx := m.win.MaxYX()
+	xOffset := CELL_WIDTH / 2
+	yOffset := CELL_HEIGHT / 2
 
-	yfactor, xfactor := my/m.gridHeight, mx/m.gridWidth
+	startX := (mx - m.gridWidth*CELL_WIDTH) / 2
+	startY := (my - m.gridHeight*CELL_HEIGHT) / 2
 
-	for x := 1; x <= m.gridWidth; x++ {
-		for y := 1; y <= m.gridHeight; y++ {
-			// var ch rune
-			cell := (*m.grid)[types.Position{X: x, Y: y}]
-			// switch cell {
-			// case types.CELL_BLANK:
-			// 	ch = ' '
-			// 	m.win.ColorOn(types.COLOR_WATER)
-			// case types.CELL_CURSOR:
-			// 	// ch should previous ch but color reversed
-			// 	ch = ' '
-			// 	m.win.ColorOn(types.COLOR_CURSOR)
-			// case types.CELL_CRUISER:
-			// 	ch = types.CRUISER_SPRITE[(utils.AbsInt(y-x)-1)%len(types.CRUISER_SPRITE)]
-			// 	m.win.ColorOn(types.COLOR_SHIP)
-			// case types.CELL_DESTROYER:
-			// 	ch = types.CRUISER_SPRITE[(utils.AbsInt(y-x)-1)%len(types.DESTROYER_SPRITE)]
-			// 	m.win.ColorOn(types.COLOR_SHIP)
-			// case types.CELL_BATTLESHIP:
-			// 	ch = types.BATTLESHIP_SPRITE[(utils.AbsInt(y-x)-1)%len(types.BATTLESHIP_SPRITE)]
-			// 	m.win.ColorOn(types.COLOR_SHIP)
-			// case types.CELL_CARRIER:
-			// 	ch = types.CARRIER_SPRITE[(utils.AbsInt(y-x)-1)%len(types.CARRIER_SPRITE)]
-			// 	m.win.ColorOn(types.COLOR_SHIP)
-			// case types.CELL_SUBMARINE:
-			// 	ch = types.SUBMARINE_SPRITE[(utils.AbsInt(y-x)-1)%len(types.SUBMARINE_SPRITE)]
-			// 	m.win.ColorOn(types.COLOR_SHIP)
-			// case types.CELL_DESTROYED:
-			// 	ch = '#'
-			// 	m.win.ColorOn(types.COLOR_FLAMES)
-			// case types.CELL_MISS:
-			// 	ch = 'o'
-			// 	m.win.ColorOn(types.COLOR_MISS)
-			// default:
-			// 	wallch, ok := types.WALLS_ASCII[cell]
-			// 	if ok {
-			// 		ch = wallch
-			// 	} else {
-			// 		ch = '|'
-			// 	}
-			// 	m.win.ColorOn(types.COLOR_WALL)
-			// }
+	for col := 0; col < m.gridWidth; col++ {
+		for row := 0; row < m.gridHeight; row++ {
 
-			// m.win.MoveAddChar(y*yfactor+3, x*xfactor, goncurses.Char(ch))
+			cell := (*m.grid)[types.Position{X: col, Y: row}]
+
+			x := (startX + xOffset) + col*CELL_WIDTH
+			y := (startY + yOffset) + row*CELL_HEIGHT
 
 			m.win.ColorOn(cell.color)
-			m.win.MovePrint(y*yfactor+3, x*xfactor, cell.content)
+			m.win.MovePrint(y, x, cell.content)
 			m.win.ColorOff(cell.color)
 		}
 	}
@@ -121,9 +97,9 @@ func (m *Map) Close() error {
 	return m.win.Delete()
 }
 
-func (m *Map) SetEntity(entity types.Entity, o types.Orientation) {
+func (m *Map) SetEntity(entity types.Entity, o types.Orientation) error {
 	if !utils.ValidateEntityPosition(entity) {
-		panic("Invalid entity position") // needs to be handled properly
+		return errors.New("Invalid entity position")
 	}
 
 	maxSize := len(entity.Sprite[o])
@@ -132,10 +108,10 @@ func (m *Map) SetEntity(entity types.Entity, o types.Orientation) {
 	case types.VERTICAL:
 		for y := entity.StartPosition.Y; y <= entity.EndPosition.Y; y++ {
 			if s > maxSize {
-				panic(fmt.Sprintf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize))
+				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: entity.StartPosition.X, Y: y}] = Cell{
-				content:  fmt.Sprintf("  %c", entity.Sprite[o][s]),
+				content:  fmt.Sprintf(" %c ", entity.Sprite[o][s]),
 				cellType: entity.CellType,
 				color:    entity.Color,
 			}
@@ -144,23 +120,25 @@ func (m *Map) SetEntity(entity types.Entity, o types.Orientation) {
 	case types.HORIZONTAL:
 		for x := entity.StartPosition.X; x <= utils.ExpectedEndPosition(entity.StartPosition.X, entity.Sprite[o]); x++ {
 			if s > maxSize {
-				panic(fmt.Sprintf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize))
+				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: x, Y: entity.StartPosition.Y}] = Cell{
-				content:  fmt.Sprintf("  %c", entity.Sprite[o][s]),
+				content:  fmt.Sprintf(" %c ", entity.Sprite[o][s]),
 				cellType: entity.CellType,
 				color:    entity.Color,
 			}
 			s++
 		}
 	}
+
+	return nil
 }
 
 func (m *Map) createEmptyGrid() *map[types.Position]Cell {
 	grid := make(map[types.Position]Cell)
 
-	for x := 1; x <= m.gridWidth; x++ {
-		for y := 1; y <= m.gridHeight; y++ {
+	for x := 0; x < m.gridWidth; x++ {
+		for y := 0; y < m.gridHeight; y++ {
 			grid[types.Position{X: x, Y: y}] = Cell{
 				content:  "   ",
 				cellType: types.CELL_WATER,
@@ -169,95 +147,42 @@ func (m *Map) createEmptyGrid() *map[types.Position]Cell {
 		}
 	}
 
-	createBorders(&grid, m.gridWidth, m.gridHeight)
-
 	return &grid
 }
 
-func createBorders(grid *map[types.Position]Cell, gridWidth, gridHeight int) {
-	for x := 1; x <= gridWidth; x++ {
-		for y := 1; y <= gridHeight; y++ {
-			if x == 1 && y == 1 {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_TOP_LEFT]),
-					cellType: types.CELL_WALL_TOP_LEFT,
-					color:    types.COLOR_WALL,
-				}
-			} else if x == 1 && y == gridHeight {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_BOTTOM_LEFT]),
-					cellType: types.CELL_WALL_BOTTOM_LEFT,
-					color:    types.COLOR_WALL,
-				}
-			} else if x == gridWidth && y == 1 {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_TOP_RIGHT]),
-					cellType: types.CELL_WALL_TOP_RIGHT,
-					color:    types.COLOR_WALL,
-				}
-			} else if x == gridWidth && y == gridHeight {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_BOTTOM_RIGHT]),
-					cellType: types.CELL_WALL_BOTTOM_RIGHT,
-					color:    types.COLOR_WALL,
-				}
-			} else if x == 1 {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_TEE_DOWN]),
-					cellType: types.CELL_WALL_TEE_DOWN,
-					color:    types.COLOR_WALL,
-				}
-			} else if x == gridWidth {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_TEE_UP]),
-					cellType: types.CELL_WALL_TEE_UP,
-					color:    types.COLOR_WALL,
-				}
-			} else if y == 1 {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_TEE_RIGHT]),
-					cellType: types.CELL_WALL_TEE_RIGHT,
-					color:    types.COLOR_WALL,
-				}
-			} else if y == gridHeight {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_TEE_LEFT]),
-					cellType: types.CELL_WALL_TEE_LEFT,
-					color:    types.COLOR_WALL,
-				}
-			} else {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_CORNER]),
-					cellType: types.CELL_WALL_CORNER,
-					color:    types.COLOR_WALL,
+func (m *Map) drawBorders() error {
+	my, mx := m.win.MaxYX()
+
+	if mx < m.gridWidth*CELL_WIDTH || my < m.gridHeight*CELL_HEIGHT {
+		return fmt.Errorf("Window size is too small to accommodate the map. Map is %dx%d, window is %dx%d", m.gridWidth*CELL_WIDTH, m.gridHeight*CELL_HEIGHT, mx, my)
+	}
+
+	// calculate the starting position for the drawBorders
+	// borders start is (max size - (grid size * cell size)) / 2
+	// this gives the starting position of the grid such that it is centered in the window
+	startX := (mx - m.gridWidth*CELL_WIDTH) / 2
+	startY := (my - m.gridHeight*CELL_HEIGHT) / 2
+
+	for row := 0; row <= m.gridHeight; row++ {
+		for col := 0; col <= m.gridWidth; col++ {
+			y := startY + row*CELL_HEIGHT
+			x := startX + col*CELL_WIDTH
+
+			m.win.ColorOn(types.COLOR_WALL)
+			m.win.MoveAddChar(y, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_CORNER]))
+
+			if col < m.gridWidth {
+				for i := 1; i < CELL_WIDTH; i++ {
+					m.win.MoveAddChar(y, x+i, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_HORIZONTAL]))
 				}
 			}
 
-			// draw outer borders
-			// outer borders must be drawn when x
-			//
-			// scratch all that
-			// since borders are constant why should i calculate it or even place it in the grid?
-			// why not just draw the border and only store variable cells in the grid?
-			if x < gridWidth {
-				for i := 1; i < 4; i++ {
-					// win.MoveAddChar(y, x+i, horizontal)
-					(*grid)[types.Position{X: i, Y: y}] = Cell{
-						content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_HORIZONTAL]),
-						cellType: types.CELL_WALL_HORIZONTAL,
-						color:    types.COLOR_WALL,
-					}
-				}
+			if row < m.gridHeight {
+				m.win.MoveAddChar(y+1, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_VERTICAL]))
 			}
-
-			if y < gridHeight {
-				(*grid)[types.Position{X: x, Y: y}] = Cell{
-					content:  fmt.Sprintf(" %c", types.WALLS_ASCII[types.CELL_WALL_VERTICAL]),
-					cellType: types.CELL_WALL_VERTICAL,
-					color:    types.COLOR_WALL,
-				}
-			}
-			// win.ColorOff(WHITE_BLACK)
+			m.win.ColorOff(types.COLOR_WALL)
 		}
 	}
+
+	return nil
 }
