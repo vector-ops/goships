@@ -26,14 +26,18 @@ type Cell struct {
 type Map struct {
 	win *goncurses.Window
 
+	title      string
+	titleColor int16
 	grid       *map[types.Position]Cell
 	gridHeight int
 	gridWidth  int
 }
 
-func NewMap(win *goncurses.Window, startingGrid *map[types.Position]Cell, gridWidth, gridHeight *int) *Map {
+func NewMap(win *goncurses.Window, title string, titleColor int16, startingGrid *map[types.Position]Cell, gridWidth, gridHeight *int) *Map {
 	m := &Map{
 		win:        win,
+		title:      title,
+		titleColor: titleColor,
 		gridHeight: DEFAULT_GRID_HEIGHT,
 		gridWidth:  DEFAULT_GRID_WIDTH,
 	}
@@ -60,6 +64,13 @@ func (m *Map) Render(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	_, mx := m.win.MaxYX()
+
+	m.win.ColorOn(m.titleColor)
+	m.win.MovePrint(1, (mx/2)-len(m.title)/2, m.title)
+	m.win.ColorOff(m.titleColor)
+
 	err = m.drawBorders()
 	if err != nil {
 		return err
@@ -71,8 +82,8 @@ func (m *Map) Render(ctx context.Context) error {
 
 func (m *Map) draw() error {
 	my, mx := m.win.MaxYX()
-	xOffset := CELL_WIDTH / 2
-	yOffset := CELL_HEIGHT / 2
+	offsetX := CELL_WIDTH / 2
+	offsetY := CELL_HEIGHT / 2
 
 	startX := (mx - m.gridWidth*CELL_WIDTH) / 2
 	startY := (my - m.gridHeight*CELL_HEIGHT) / 2
@@ -82,8 +93,8 @@ func (m *Map) draw() error {
 
 			cell := (*m.grid)[types.Position{X: col, Y: row}]
 
-			x := (startX + xOffset) + col*CELL_WIDTH
-			y := (startY + yOffset) + row*CELL_HEIGHT
+			x := (startX + offsetX) + col*CELL_WIDTH
+			y := (startY + offsetY) + row*CELL_HEIGHT
 
 			m.win.ColorOn(cell.color)
 			m.win.MovePrint(y, x, cell.content)
@@ -106,7 +117,7 @@ func (m *Map) SetEntity(entity types.Entity, o types.Orientation) error {
 	s := 0
 	switch o {
 	case types.VERTICAL:
-		for y := entity.StartPosition.Y; y <= entity.EndPosition.Y; y++ {
+		for y := entity.StartPosition.Y; y <= utils.ExpectedEndPosition(entity.StartPosition.Y, entity.Sprite[o]); y++ {
 			if s > maxSize {
 				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
