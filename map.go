@@ -14,7 +14,7 @@ const (
 	DEFAULT_GRID_WIDTH  = 9
 	DEFAULT_GRID_HEIGHT = 7
 	CELL_HEIGHT         = 2
-	CELL_WIDTH          = 5
+	CELL_WIDTH          = 4
 )
 
 type Cell struct {
@@ -82,7 +82,7 @@ func (m *Map) Render(ctx context.Context) error {
 
 func (m *Map) draw() error {
 	my, mx := m.win.MaxYX()
-	offsetX := CELL_WIDTH / 2
+	offsetX := CELL_WIDTH/2 - 1
 	offsetY := CELL_HEIGHT / 2
 
 	startX := (mx - m.gridWidth*CELL_WIDTH) / 2
@@ -169,7 +169,7 @@ func (m *Map) drawBorders() error {
 	}
 
 	// calculate the starting position for the drawBorders
-	// borders start is (max size - (grid size * cell size)) / 2
+	// borders start is (max size - total size of all cells) / 2
 	// this gives the starting position of the grid such that it is centered in the window
 	startX := (mx - m.gridWidth*CELL_WIDTH) / 2
 	startY := (my - m.gridHeight*CELL_HEIGHT) / 2
