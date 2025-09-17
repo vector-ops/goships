@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"unicode"
 
 	"github.com/rthornton128/goncurses"
 	"github.com/vector-ops/goships/types"
@@ -11,7 +12,7 @@ import (
 )
 
 const (
-	DEFAULT_GRID_WIDTH  = 9
+	DEFAULT_GRID_WIDTH  = 10
 	DEFAULT_GRID_HEIGHT = 7
 	CELL_HEIGHT         = 2
 	CELL_WIDTH          = 4
@@ -26,20 +27,31 @@ type Cell struct {
 type Map struct {
 	win *goncurses.Window
 
-	title      string
-	titleColor int16
-	grid       *map[types.Position]Cell
-	gridHeight int
-	gridWidth  int
+	title          string
+	titleColor     int16
+	grid           *map[types.Position]Cell
+	gridHeight     int
+	gridWidth      int
+	cursor         *Cursor
+	enableCursor   bool
+	enableKeyboard bool
 }
 
-func NewMap(win *goncurses.Window, title string, titleColor int16, startingGrid *map[types.Position]Cell, gridWidth, gridHeight *int) *Map {
+type Cursor struct {
+	position types.Position
+	content  string
+}
+
+func NewMap(win *goncurses.Window, title string, titleColor int16, startingGrid *map[types.Position]Cell, gridWidth, gridHeight *int, enableKeyboard bool) *Map {
 	m := &Map{
-		win:        win,
-		title:      title,
-		titleColor: titleColor,
-		gridHeight: DEFAULT_GRID_HEIGHT,
-		gridWidth:  DEFAULT_GRID_WIDTH,
+		win:            win,
+		title:          title,
+		titleColor:     titleColor,
+		gridHeight:     DEFAULT_GRID_HEIGHT,
+		gridWidth:      DEFAULT_GRID_WIDTH,
+		cursor:         &Cursor{position: types.Position{X: 0, Y: 0}, content: "   "},
+		enableCursor:   false,
+		enableKeyboard: enableKeyboard,
 	}
 
 	if startingGrid != nil {
@@ -56,6 +68,82 @@ func NewMap(win *goncurses.Window, title string, titleColor int16, startingGrid 
 	}
 
 	return m
+}
+
+func (m *Map) EnableCursor(enable bool) {
+	if enable && m.cursor == nil {
+		m.cursor = &Cursor{position: types.Position{X: 0, Y: 0}, content: "   "}
+	}
+	m.enableCursor = enable
+}
+
+func (m *Map) handleShipPlacement(key goncurses.Key) {
+	ch := rune(key)
+
+	if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') {
+		if m.cursor == nil {
+			m.cursor = &Cursor{position: types.Position{X: 0, Y: 0}, content: "   "}
+		}
+
+		var cellType types.CellType
+		switch unicode.ToUpper(ch) {
+		case 'B':
+			cellType = types.CELL_BATTLESHIP
+		case 'C':
+			cellType = types.CELL_CRUISER
+		case 'D':
+			cellType = types.CELL_DESTROYER
+		case 'S':
+			cellType = types.CELL_SUBMARINE
+		}
+
+		(*m.grid)[m.cursor.position] = Cell{
+			cellType: cellType,
+			color:    types.COLOR_SHIP,
+			content:  fmt.Sprintf(" %c ", unicode.ToUpper(ch)),
+		}
+		m.cursor.content = fmt.Sprintf(" %c ", unicode.ToUpper(ch))
+	}
+}
+
+func (m *Map) HandleKeyInput(key goncurses.Key) {
+	if !m.enableKeyboard || !m.enableCursor {
+		return
+	}
+
+	switch key {
+	case goncurses.KEY_UP:
+		if m.cursor.position.Y > 0 {
+			m.cursor.position.Y--
+			m.cursor.content = (*m.grid)[m.cursor.position].content
+		}
+	case goncurses.KEY_DOWN:
+		if m.cursor.position.Y < m.gridHeight-1 {
+			m.cursor.position.Y++
+			m.cursor.content = (*m.grid)[m.cursor.position].content
+		}
+	case goncurses.KEY_LEFT:
+		if m.cursor.position.X > 0 {
+			m.cursor.position.X--
+			m.cursor.content = (*m.grid)[m.cursor.position].content
+		}
+	case goncurses.KEY_RIGHT:
+		if m.cursor.position.X < m.gridWidth-1 {
+			m.cursor.position.X++
+			m.cursor.content = (*m.grid)[m.cursor.position].content
+		}
+	case goncurses.KEY_BACKSPACE:
+		cellType := (*m.grid)[m.cursor.position].cellType
+		(*m.grid)[m.cursor.position] = Cell{
+			cellType: cellType,
+			color:    types.COLOR_WATER,
+			content:  "   ",
+		}
+		m.cursor.content = "   "
+
+	default:
+		m.handleShipPlacement(key)
+	}
 }
 
 func (m *Map) Render(ctx context.Context) error {
@@ -92,6 +180,13 @@ func (m *Map) draw() error {
 		for row := 0; row < m.gridHeight; row++ {
 
 			cell := (*m.grid)[types.Position{X: col, Y: row}]
+			if m.enableCursor && col == m.cursor.position.X && row == m.cursor.position.Y {
+				cell = Cell{
+					cellType: types.CELL_CURSOR,
+					color:    types.COLOR_CURSOR,
+					content:  m.cursor.content,
+				}
+			}
 
 			x := (startX + offsetX) + col*CELL_WIDTH
 			y := (startY + offsetY) + row*CELL_HEIGHT
