@@ -12,7 +12,8 @@ import (
 )
 
 type GameState struct {
-	win *goncurses.Window
+	win          *goncurses.Window
+	keyInputChan chan goncurses.Key
 
 	PlayerMap *Map
 	EnemyMap  *Map
@@ -20,15 +21,18 @@ type GameState struct {
 	ScoreBoard *ScoreBoard
 	Guide      *Guide
 	menuWindow *goncurses.Window
+
+	playerHasSetShips bool
 }
 
-func NewGameState(stdscr *goncurses.Window) *GameState {
+func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key) *GameState {
 	gs := &GameState{
-		win: stdscr,
+		win:          stdscr,
+		keyInputChan: keyInputChan,
 	}
 
-	gs.PlayerMap = NewMap(calculateSubWindow(stdscr, types.PLAYER), "PLAYER", types.COLOR_TITLE_PLAYER, nil, nil, nil)
-	gs.EnemyMap = NewMap(calculateSubWindow(stdscr, types.ENEMY), "ENEMY", types.COLOR_TITLE_ENEMY, nil, nil, nil)
+	gs.PlayerMap = NewMap(calculateSubWindow(stdscr, types.PLAYER), "PLAYER", types.COLOR_TITLE_PLAYER, nil, nil, nil, true)
+	gs.EnemyMap = NewMap(calculateSubWindow(stdscr, types.ENEMY), "ENEMY", types.COLOR_TITLE_ENEMY, nil, nil, nil, false)
 	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE))
 	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE))
 	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)
@@ -51,6 +55,10 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			gs.CloseResources()
 			loadingCancel()
 			return nil
+		case key := <-gs.keyInputChan:
+			gs.PlayerMap.HandleKeyInput(key)
+			gs.EnemyMap.HandleKeyInput(key)
+
 		default:
 			if loading {
 				screens.ShowLoadingScreen(loadingContext, gs.win, nil)
@@ -86,6 +94,14 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 				types.HORIZONTAL)
 			if err != nil {
 				return err
+			}
+
+			if !gs.playerHasSetShips {
+				gs.PlayerMap.EnableCursor(true)
+				gs.EnemyMap.EnableCursor(false)
+			} else {
+				gs.PlayerMap.EnableCursor(false)
+				gs.EnemyMap.EnableCursor(true)
 			}
 
 			err = gs.EnemyMap.Render(ctx)
@@ -124,9 +140,12 @@ func (gs *GameState) CloseResources() error {
 		}
 	}
 
+	close(gs.keyInputChan)
+
 	if len(errs) > 0 {
 		return fmt.Errorf("failed to close resources: %v", errs)
 	}
+
 	return nil
 }
 

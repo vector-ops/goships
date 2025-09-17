@@ -64,9 +64,11 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go utils.QuitOnQ(stdscr, cancel)
+	ch := make(chan gc.Key)
 
-	game := NewGameState(stdscr)
+	go utils.HandleKeyboardEvent(stdscr, cancel, ch)
+
+	game := NewGameState(stdscr, ch)
 
 	if err := game.Render(ctx, cancel); err != nil {
 		game.CloseResources()
