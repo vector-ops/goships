@@ -31,8 +31,26 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key) *Ga
 		keyInputChan: keyInputChan,
 	}
 
-	gs.PlayerMap = NewMap(calculateSubWindow(stdscr, types.PLAYER), "PLAYER", types.COLOR_TITLE_PLAYER, nil, nil, nil, true)
-	gs.EnemyMap = NewMap(calculateSubWindow(stdscr, types.ENEMY), "ENEMY", types.COLOR_TITLE_ENEMY, nil, nil, nil, false)
+	gs.PlayerMap = NewMap(
+		calculateSubWindow(stdscr, types.PLAYER), // window
+		true,                                     // isPlayerMap
+		"PLAYER",                                 // title
+		types.GREEN_BLACK,                        // titleColor
+		nil,                                      // startingGrid
+		nil,                                      // gridWidth
+		nil,                                      // gridHeight
+		true,                                     // enableKeyboard
+	)
+	gs.EnemyMap = NewMap(
+		calculateSubWindow(stdscr, types.ENEMY), // window
+		false,                                   // isPlayerMap
+		"ENEMY",                                 // title
+		types.RED_BLACK,                         // titleColor
+		nil,                                     // startingGrid
+		nil,                                     // gridWidth
+		nil,                                     // gridHeight
+		true,                                    // enableKeyboard
+	)
 	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE))
 	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE))
 	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)
@@ -80,22 +98,6 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			// default:
 			// }
 
-			err := gs.EnemyMap.SetEntity(types.Entity{
-				Type:          types.BATTLESHIP,
-				CellType:      types.CELL_BATTLESHIP,
-				StartPosition: types.Position{X: 4, Y: 3},
-				EndPosition:   types.Position{X: 7, Y: 3},
-				Color:         types.COLOR_SHIP,
-				Sprite: map[types.Orientation][]rune{
-					types.HORIZONTAL: types.BATTLESHIP_SPRITE,
-					types.VERTICAL:   types.BATTLESHIP_SPRITE,
-				},
-			},
-				types.HORIZONTAL)
-			if err != nil {
-				return err
-			}
-
 			if !gs.playerHasSetShips {
 				gs.PlayerMap.EnableCursor(true)
 				gs.EnemyMap.EnableCursor(false)
@@ -104,7 +106,7 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 				gs.EnemyMap.EnableCursor(true)
 			}
 
-			err = gs.EnemyMap.Render(ctx)
+			err := gs.EnemyMap.Render(ctx)
 			if err != nil {
 				return err
 			}

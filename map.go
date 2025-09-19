@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"unicode"
 
 	"github.com/rthornton128/goncurses"
 	"github.com/vector-ops/goships/types"
@@ -21,7 +20,7 @@ const (
 type Cell struct {
 	cellType types.CellType
 	color    int16
-	content  string
+	content  rune
 }
 
 type Map struct {
@@ -35,23 +34,31 @@ type Map struct {
 	cursor         *Cursor
 	enableCursor   bool
 	enableKeyboard bool
+	isPlayerMap    bool
+
+	unplacedShips []types.ShipType
 }
 
 type Cursor struct {
-	position types.Position
-	content  string
+	startPosition types.Position
+	endPosition   types.Position
+	orientation   types.Orientation
+	content       []rune
+	shipType      *types.ShipType
 }
 
-func NewMap(win *goncurses.Window, title string, titleColor int16, startingGrid *map[types.Position]Cell, gridWidth, gridHeight *int, enableKeyboard bool) *Map {
+func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor int16, startingGrid *map[types.Position]Cell, gridWidth, gridHeight *int, enableKeyboard bool) *Map {
 	m := &Map{
 		win:            win,
 		title:          title,
 		titleColor:     titleColor,
 		gridHeight:     DEFAULT_GRID_HEIGHT,
 		gridWidth:      DEFAULT_GRID_WIDTH,
-		cursor:         &Cursor{position: types.Position{X: 0, Y: 0}, content: "   "},
+		cursor:         &Cursor{startPosition: types.Position{X: 0, Y: 0}, endPosition: types.Position{X: 0, Y: 0}, orientation: types.HORIZONTAL, content: []rune{' '}},
 		enableCursor:   false,
 		enableKeyboard: enableKeyboard,
+		isPlayerMap:    isPlayerMap,
+		unplacedShips:  []types.ShipType{types.AIRCRAFT_CARRIER, types.BATTLESHIP, types.CRUISER, types.DESTROYER, types.SUBMARINE},
 	}
 
 	if startingGrid != nil {
@@ -72,38 +79,14 @@ func NewMap(win *goncurses.Window, title string, titleColor int16, startingGrid 
 
 func (m *Map) EnableCursor(enable bool) {
 	if enable && m.cursor == nil {
-		m.cursor = &Cursor{position: types.Position{X: 0, Y: 0}, content: "   "}
+		m.cursor = &Cursor{startPosition: types.Position{X: 0, Y: 0}, endPosition: types.Position{X: 0, Y: 0}, content: []rune{' '}}
+	}
+	if m.isPlayerMap && len(m.unplacedShips) > 0 && m.cursor.shipType == nil {
+		m.cursor.shipType = &m.unplacedShips[0]
+		m.cursor.endPosition = utils.ExpectedEndPosition(m.cursor.startPosition, utils.GetEntitySprite(*m.cursor.shipType), m.cursor.orientation)
+		m.cursor.content = utils.GetEntitySprite(*m.cursor.shipType)
 	}
 	m.enableCursor = enable
-}
-
-func (m *Map) handleShipPlacement(key goncurses.Key) {
-	ch := rune(key)
-
-	if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') {
-		if m.cursor == nil {
-			m.cursor = &Cursor{position: types.Position{X: 0, Y: 0}, content: "   "}
-		}
-
-		var cellType types.CellType
-		switch unicode.ToUpper(ch) {
-		case 'B':
-			cellType = types.CELL_BATTLESHIP
-		case 'C':
-			cellType = types.CELL_CRUISER
-		case 'D':
-			cellType = types.CELL_DESTROYER
-		case 'S':
-			cellType = types.CELL_SUBMARINE
-		}
-
-		(*m.grid)[m.cursor.position] = Cell{
-			cellType: cellType,
-			color:    types.COLOR_SHIP,
-			content:  fmt.Sprintf(" %c ", unicode.ToUpper(ch)),
-		}
-		m.cursor.content = fmt.Sprintf(" %c ", unicode.ToUpper(ch))
-	}
 }
 
 func (m *Map) HandleKeyInput(key goncurses.Key) {
@@ -111,38 +94,101 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 		return
 	}
 
+	if m.isPlayerMap && len(m.unplacedShips) == 0 {
+		return
+	}
+
 	switch key {
 	case goncurses.KEY_UP:
-		if m.cursor.position.Y > 0 {
-			m.cursor.position.Y--
-			m.cursor.content = (*m.grid)[m.cursor.position].content
+		if m.cursor.startPosition.Y > 0 {
+			m.cursor.startPosition.Y--
+			m.cursor.endPosition.Y--
+			if !m.isPlayerMap {
+				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].content}
+			}
 		}
 	case goncurses.KEY_DOWN:
-		if m.cursor.position.Y < m.gridHeight-1 {
-			m.cursor.position.Y++
-			m.cursor.content = (*m.grid)[m.cursor.position].content
+		if (m.cursor.orientation == types.HORIZONTAL && m.cursor.startPosition.Y < m.gridHeight-1) || (m.cursor.orientation == types.VERTICAL && m.cursor.endPosition.Y < m.gridHeight-1) {
+			m.cursor.startPosition.Y++
+			m.cursor.endPosition.Y++
+			if !m.isPlayerMap {
+				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].content}
+			}
 		}
 	case goncurses.KEY_LEFT:
-		if m.cursor.position.X > 0 {
-			m.cursor.position.X--
-			m.cursor.content = (*m.grid)[m.cursor.position].content
+		if m.cursor.startPosition.X > 0 {
+			m.cursor.startPosition.X--
+			m.cursor.endPosition.X--
+			if !m.isPlayerMap {
+				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].content}
+			}
 		}
 	case goncurses.KEY_RIGHT:
-		if m.cursor.position.X < m.gridWidth-1 {
-			m.cursor.position.X++
-			m.cursor.content = (*m.grid)[m.cursor.position].content
+		if (m.cursor.orientation == types.HORIZONTAL && m.cursor.endPosition.X < m.gridWidth-1) || (m.cursor.orientation == types.VERTICAL && m.cursor.startPosition.X < m.gridWidth-1) {
+			m.cursor.startPosition.X++
+			m.cursor.endPosition.X++
+			if !m.isPlayerMap {
+				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].content}
+			}
 		}
-	case goncurses.KEY_BACKSPACE:
-		cellType := (*m.grid)[m.cursor.position].cellType
-		(*m.grid)[m.cursor.position] = Cell{
-			cellType: cellType,
-			color:    types.COLOR_WATER,
-			content:  "   ",
+
+	case ' ':
+		if !m.isPlayerMap {
+			return
 		}
-		m.cursor.content = "   "
+		newOrientation := m.cursor.orientation
+		if newOrientation == types.HORIZONTAL {
+			newOrientation = types.VERTICAL
+		} else {
+			newOrientation = types.HORIZONTAL
+		}
+
+		sprite := m.cursor.content
+
+		expectedEndPosition := utils.ExpectedEndPosition(m.cursor.startPosition, sprite, newOrientation)
+
+		if expectedEndPosition.X < m.gridWidth && expectedEndPosition.Y < m.gridHeight {
+			m.cursor.endPosition = expectedEndPosition
+			if !m.isPlayerMap {
+				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].content}
+			}
+			m.cursor.orientation = newOrientation
+		}
+
+	case goncurses.KEY_ENTER, goncurses.KEY_RETURN:
+		if m.isPlayerMap {
+			if m.cursor.shipType == nil {
+				return
+			}
+			entity := types.Ship{
+				Type:          *m.cursor.shipType,
+				StartPosition: m.cursor.startPosition,
+				EndPosition:   m.cursor.endPosition,
+				Color:         types.COLOR_SHIP,
+			}
+			m.placeShip(entity, m.cursor.orientation)
+
+			m.unplacedShips = m.unplacedShips[1:]
+			if len(m.unplacedShips) == 0 {
+				m.cursor.shipType = nil
+			} else {
+				m.cursor.shipType = &m.unplacedShips[0]
+				m.cursor.endPosition = utils.ExpectedEndPosition(m.cursor.startPosition, utils.GetEntitySprite(*m.cursor.shipType), m.cursor.orientation)
+				m.cursor.content = utils.GetEntitySprite(*m.cursor.shipType)
+			}
+		}
+
+	// case goncurses.KEY_BACKSPACE:
+	// 	cellType := (*m.grid)[m.cursor.position].cellType
+	// 	(*m.grid)[m.cursor.position] = Cell{
+	// 		cellType: cellType,
+	// 		color:    types.COLOR_WATER,
+	// 		content:  "   ",
+	// 	}
+	// 	m.cursor.content = "   "
 
 	default:
-		m.handleShipPlacement(key)
+
 	}
 }
 
@@ -180,11 +226,19 @@ func (m *Map) draw() error {
 		for row := 0; row < m.gridHeight; row++ {
 
 			cell := (*m.grid)[types.Position{X: col, Y: row}]
-			if m.enableCursor && col == m.cursor.position.X && row == m.cursor.position.Y {
+			if m.enableCursor && col >= m.cursor.startPosition.X && col <= m.cursor.endPosition.X && row >= m.cursor.startPosition.Y && row <= m.cursor.endPosition.Y {
+
+				gridIndex := row
+				if m.cursor.orientation == types.HORIZONTAL {
+					gridIndex = col
+				}
+
+				i := gridIndex % len(m.cursor.content)
+
 				cell = Cell{
 					cellType: types.CELL_CURSOR,
 					color:    types.COLOR_CURSOR,
-					content:  m.cursor.content,
+					content:  m.cursor.content[i],
 				}
 			}
 
@@ -192,7 +246,7 @@ func (m *Map) draw() error {
 			y := (startY + offsetY) + row*CELL_HEIGHT
 
 			m.win.ColorOn(cell.color)
-			m.win.MovePrint(y, x, cell.content)
+			m.win.MovePrint(y, x, fmt.Sprintf(" %c ", cell.content))
 			m.win.ColorOff(cell.color)
 		}
 	}
@@ -203,34 +257,35 @@ func (m *Map) Close() error {
 	return m.win.Delete()
 }
 
-func (m *Map) SetEntity(entity types.Entity, o types.Orientation) error {
-	if !utils.ValidateEntityPosition(entity) {
+func (m *Map) placeShip(entity types.Ship, o types.Orientation) error {
+	if !utils.ValidateEntityPosition(entity, m.gridHeight, m.gridWidth) {
 		return errors.New("Invalid entity position")
 	}
 
-	maxSize := len(entity.Sprite[o])
+	sprite := utils.GetEntitySprite(entity.Type)
+	maxSize := len(sprite)
 	s := 0
 	switch o {
 	case types.VERTICAL:
-		for y := entity.StartPosition.Y; y <= utils.ExpectedEndPosition(entity.StartPosition.Y, entity.Sprite[o]); y++ {
+		for y := entity.StartPosition.Y; y <= utils.ExpectedEndCoordinate(entity.StartPosition.Y, sprite); y++ {
 			if s > maxSize {
 				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: entity.StartPosition.X, Y: y}] = Cell{
-				content:  fmt.Sprintf(" %c ", entity.Sprite[o][s]),
-				cellType: entity.CellType,
+				content:  sprite[s],
+				cellType: utils.GetCellType(entity.Type),
 				color:    entity.Color,
 			}
 			s++
 		}
 	case types.HORIZONTAL:
-		for x := entity.StartPosition.X; x <= utils.ExpectedEndPosition(entity.StartPosition.X, entity.Sprite[o]); x++ {
+		for x := entity.StartPosition.X; x <= utils.ExpectedEndCoordinate(entity.StartPosition.X, sprite); x++ {
 			if s > maxSize {
 				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: x, Y: entity.StartPosition.Y}] = Cell{
-				content:  fmt.Sprintf(" %c ", entity.Sprite[o][s]),
-				cellType: entity.CellType,
+				content:  sprite[s],
+				cellType: utils.GetCellType(entity.Type),
 				color:    entity.Color,
 			}
 			s++
@@ -246,7 +301,7 @@ func (m *Map) createEmptyGrid() *map[types.Position]Cell {
 	for x := 0; x < m.gridWidth; x++ {
 		for y := 0; y < m.gridHeight; y++ {
 			grid[types.Position{X: x, Y: y}] = Cell{
-				content:  "   ",
+				content:  ' ',
 				cellType: types.CELL_WATER,
 				color:    types.COLOR_WATER,
 			}
