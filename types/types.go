@@ -52,11 +52,7 @@ const (
 	CELL_WALL_TEE_UP
 	CELL_WALL_TEE_DOWN
 	CELL_CURSOR
-	CELL_CRUISER
-	CELL_DESTROYER
-	CELL_BATTLESHIP
-	CELL_CARRIER
-	CELL_SUBMARINE
+	CELL_SHIP
 	CELL_DESTROYED
 	CELL_MISS
 	CELL_WATER
@@ -97,8 +93,6 @@ const (
 	COLOR_HIT
 	COLOR_MISS
 	COLOR_CURSOR
-	// COLOR_TITLE_ENEMY
-	// COLOR_TITLE_PLAYER
 	WHITE_BLACK
 	RED_BLACK
 	GREEN_BLACK
@@ -112,6 +106,7 @@ const (
 	BLACK_YELLOW
 	BLACK_CYAN
 	BLACK_MAGENTA
+	BLACK_RED
 )
 
 const (
@@ -123,8 +118,7 @@ type Position struct {
 }
 
 type Ship struct {
-	Type ShipType
-	// CellType      CellType
+	Type          ShipType
 	StartPosition Position
 	EndPosition   Position
 	Color         int16
@@ -137,3 +131,9 @@ var (
 	SUBMARINE_SPRITE  = []rune{'S', 'S'}
 	CARRIER_SPRITE    = []rune{'C', 'V', 'S', 'H', 'P'}
 )
+
+type Cell struct {
+	Type    CellType
+	Color   int16
+	Content rune
+}
