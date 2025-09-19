@@ -97,8 +97,8 @@ const (
 	COLOR_HIT
 	COLOR_MISS
 	COLOR_CURSOR
-	COLOR_TITLE_ENEMY
-	COLOR_TITLE_PLAYER
+	// COLOR_TITLE_ENEMY
+	// COLOR_TITLE_PLAYER
 	WHITE_BLACK
 	RED_BLACK
 	GREEN_BLACK
@@ -122,13 +122,12 @@ type Position struct {
 	X, Y int
 }
 
-type Entity struct {
-	Type          ShipType
-	CellType      CellType
+type Ship struct {
+	Type ShipType
+	// CellType      CellType
 	StartPosition Position
 	EndPosition   Position
 	Color         int16
-	Sprite        map[Orientation][]rune
 }
 
 var (
