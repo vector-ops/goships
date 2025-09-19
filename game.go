@@ -99,11 +99,17 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			// }
 
 			if !gs.playerHasSetShips {
-				gs.PlayerMap.EnableCursor(true)
-				gs.EnemyMap.EnableCursor(false)
-			} else {
-				gs.PlayerMap.EnableCursor(false)
-				gs.EnemyMap.EnableCursor(true)
+				if gs.PlayerMap.HasPlacedShips() {
+					gs.playerHasSetShips = true
+
+					gs.EnemyMap.PlaceRandomShips()
+
+					gs.PlayerMap.EnableCursor(false)
+					gs.EnemyMap.EnableCursor(true)
+				} else {
+					gs.PlayerMap.EnableCursor(true)
+					gs.EnemyMap.EnableCursor(false)
+				}
 			}
 
 			err := gs.EnemyMap.Render(ctx)
