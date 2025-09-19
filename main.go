@@ -42,7 +42,7 @@ func main() {
 
 	gc.InitPair(types.COLOR_WATER, gc.C_BLUE, gc.C_BLUE)
 	gc.InitPair(types.COLOR_CURSOR, gc.C_BLACK, gc.C_WHITE)
-	gc.InitPair(types.COLOR_HIT, gc.C_RED, gc.C_RED)
+	gc.InitPair(types.COLOR_HIT, gc.C_BLACK, gc.C_RED)
 	gc.InitPair(types.COLOR_WALL, -1, -1)
 	gc.InitPair(types.COLOR_SHIP, gc.C_BLACK, gc.C_GREEN)
 	gc.InitPair(types.COLOR_MISS, gc.C_BLACK, gc.C_BLUE)
@@ -59,6 +59,7 @@ func main() {
 	gc.InitPair(types.BLACK_YELLOW, gc.C_BLACK, gc.C_YELLOW)
 	gc.InitPair(types.BLACK_CYAN, gc.C_BLACK, gc.C_CYAN)
 	gc.InitPair(types.BLACK_MAGENTA, gc.C_BLACK, gc.C_MAGENTA)
+	gc.InitPair(types.BLACK_RED, gc.C_BLACK, gc.C_RED)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
