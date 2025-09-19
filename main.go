@@ -46,8 +46,6 @@ func main() {
 	gc.InitPair(types.COLOR_WALL, -1, -1)
 	gc.InitPair(types.COLOR_SHIP, gc.C_BLACK, gc.C_GREEN)
 	gc.InitPair(types.COLOR_MISS, gc.C_BLACK, gc.C_BLUE)
-	gc.InitPair(types.COLOR_TITLE_ENEMY, gc.C_RED, -1)
-	gc.InitPair(types.COLOR_TITLE_PLAYER, gc.C_GREEN, -1)
 	gc.InitPair(types.WHITE_BLACK, gc.C_WHITE, -1)
 	gc.InitPair(types.RED_BLACK, gc.C_RED, -1)
 	gc.InitPair(types.GREEN_BLACK, gc.C_GREEN, -1)
