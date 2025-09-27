@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 
@@ -16,6 +15,7 @@ const (
 	DEFAULT_GRID_HEIGHT = 7
 	CELL_HEIGHT         = 2
 	CELL_WIDTH          = 4
+	DEFAULT_TOTAL_SHIPS = 5
 )
 
 type Map struct {
@@ -32,6 +32,15 @@ type Map struct {
 	isPlayerMap    bool
 
 	unplacedShips []types.ShipType
+	stats         *MapStats
+	turn          int64
+}
+
+type MapStats struct {
+	Hits       int
+	Misses     int
+	ShipsHit   int
+	TotalShips int
 }
 
 type Cursor struct {
@@ -54,6 +63,7 @@ func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor in
 		enableKeyboard: enableKeyboard,
 		isPlayerMap:    isPlayerMap,
 		unplacedShips:  []types.ShipType{types.AIRCRAFT_CARRIER, types.BATTLESHIP, types.CRUISER, types.DESTROYER, types.SUBMARINE},
+		stats:          &MapStats{},
 	}
 
 	if startingGrid != nil {
@@ -88,6 +98,15 @@ func (m *Map) HasPlacedShips() bool {
 	return len(m.unplacedShips) == 0
 }
 
+func (m *Map) GetStats() *MapStats {
+	m.calculateShipsHit()
+	return m.stats
+}
+
+func (m *Map) GetTurn() int64 {
+	return m.turn
+}
+
 func (m *Map) HandleKeyInput(key goncurses.Key) {
 	if !m.enableKeyboard || !m.enableCursor {
 		return
@@ -98,6 +117,8 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 	}
 
 	switch key {
+	case 's':
+		m.SaveState()
 	case goncurses.KEY_UP:
 		if m.cursor.startPosition.Y > 0 {
 			m.cursor.startPosition.Y--
@@ -182,21 +203,29 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 				m.cursor.content = utils.GetEntitySprite(*m.cursor.shipType)
 			}
 		} else {
-
 			cell := (*m.grid)[m.cursor.startPosition]
 			if cell.Type == types.CELL_WATER || cell.Type == types.CELL_CURSOR {
 				(*m.grid)[m.cursor.startPosition] = types.Cell{
+					// ShipType: cell.ShipType,
 					Type:    types.CELL_MISS,
 					Color:   types.COLOR_MISS,
 					Content: 'x',
+					Hit:     true,
 				}
+
+				m.stats.Misses++
+				m.turn++
 			}
 			if cell.Type == types.CELL_SHIP {
 				(*m.grid)[m.cursor.startPosition] = types.Cell{
-					Type:    types.CELL_DESTROYED,
-					Color:   types.COLOR_HIT,
-					Content: cell.Content,
+					ShipType: cell.ShipType,
+					Type:     types.CELL_DESTROYED,
+					Color:    types.COLOR_HIT,
+					Content:  cell.Content,
+					Hit:      true,
 				}
+				m.stats.Hits++
+				m.turn++
 			}
 		}
 
@@ -231,10 +260,20 @@ func (m *Map) Close() error {
 	return m.win.Delete()
 }
 
+func (m *Map) SaveState() {
+	unplacedShips := []string{}
+	for _, ship := range m.unplacedShips {
+		unplacedShips = append(unplacedShips, utils.GetShipType(ship))
+	}
+
+	utils.SaveMapState(m.title, *m.grid, unplacedShips)
+}
+
 func (m *Map) PlaceRandomShips() error {
 	if len(m.unplacedShips) == 0 {
-		return nil
+		return fmt.Errorf("no ships to place")
 	}
+
 	for _, shipType := range m.unplacedShips {
 
 		var orientation types.Orientation
@@ -242,9 +281,9 @@ func (m *Map) PlaceRandomShips() error {
 		sprite := utils.GetEntitySprite(shipType)
 
 		var startPosition types.Position
-		var endPosition types.Position
+		endPosition := utils.ExpectedEndPosition(startPosition, sprite, orientation)
 
-		for utils.CheckOverlap((*m.grid), types.Ship{StartPosition: startPosition, EndPosition: endPosition}) {
+		for utils.CheckOverlap((*m.grid), types.Ship{StartPosition: startPosition, EndPosition: endPosition}) || !utils.ValidEntityPosition(types.Ship{StartPosition: startPosition, EndPosition: endPosition}, m.gridHeight, m.gridWidth) {
 			x := rand.Intn(m.gridWidth)
 			y := rand.Intn(m.gridHeight)
 
@@ -257,6 +296,7 @@ func (m *Map) PlaceRandomShips() error {
 
 			startPosition = types.Position{X: x, Y: y}
 			endPosition = utils.ExpectedEndPosition(startPosition, sprite, orientation)
+
 		}
 
 		ship := types.Ship{
@@ -274,6 +314,100 @@ func (m *Map) PlaceRandomShips() error {
 	}
 	m.unplacedShips = nil
 	return nil
+}
+
+func (m *Map) HitRandomSpot() {
+	if !m.hasEmptyCells() {
+		return
+	}
+
+	hit := false
+
+	for !hit {
+
+		x := rand.Intn(m.gridWidth)
+		y := rand.Intn(m.gridHeight)
+
+		hit = m.hitCell(x, y)
+	}
+	m.turn++
+}
+
+func (m *Map) calculateShipsHit() {
+	dd := 0
+	bb := 0
+	cv := 0
+	ss := 0
+	ca := 0
+	for col := 0; col < m.gridWidth; col++ {
+		for row := 0; row < m.gridHeight; row++ {
+			cell := (*m.grid)[types.Position{X: col, Y: row}]
+			if cell.Type == types.CELL_DESTROYED {
+				switch cell.ShipType {
+				case types.DESTROYER:
+					dd++
+				case types.BATTLESHIP:
+					bb++
+				case types.CRUISER:
+					cv++
+				case types.SUBMARINE:
+					ss++
+				case types.AIRCRAFT_CARRIER:
+					ca++
+				}
+			}
+		}
+	}
+
+	shipsHit := 0
+	if dd == len(types.DESTROYER_SPRITE) {
+		shipsHit++
+	}
+	if bb == len(types.BATTLESHIP_SPRITE) {
+		shipsHit++
+	}
+	if cv == len(types.CRUISER_SPRITE) {
+		shipsHit++
+	}
+	if ss == len(types.SUBMARINE_SPRITE) {
+		shipsHit++
+	}
+	if ca == len(types.CARRIER_SPRITE) {
+		shipsHit++
+	}
+
+	m.stats.ShipsHit = shipsHit
+}
+
+func (m *Map) hitCell(x, y int) bool {
+	cell := (*m.grid)[types.Position{X: x, Y: y}]
+
+	if cell.Type == types.CELL_DESTROYED || cell.Type == types.CELL_MISS {
+		return false
+	}
+
+	if cell.Type == types.CELL_WATER || cell.Type == types.CELL_CURSOR {
+		(*m.grid)[types.Position{X: x, Y: y}] = types.Cell{
+			Type:    types.CELL_MISS,
+			Color:   types.COLOR_MISS,
+			Content: 'x',
+			Hit:     true,
+		}
+
+		m.stats.Misses++
+	}
+	if cell.Type == types.CELL_SHIP {
+		(*m.grid)[types.Position{X: x, Y: y}] = types.Cell{
+			ShipType: cell.ShipType,
+			Type:     types.CELL_DESTROYED,
+			Color:    types.COLOR_HIT,
+			Content:  cell.Content,
+			Hit:      true,
+		}
+		m.stats.Hits++
+	}
+
+	return true
 }
 
 func (m *Map) draw() error {
@@ -303,10 +437,12 @@ func (m *Map) draw() error {
 					color = types.BLACK_RED
 				}
 
+				hit := cell.Hit
 				cell = types.Cell{
 					Type:    types.CELL_CURSOR,
 					Color:   color,
 					Content: m.cursor.content[relativeIndex],
+					Hit:     hit,
 				}
 			}
 
@@ -320,7 +456,7 @@ func (m *Map) draw() error {
 				content = ' '
 			}
 
-			if !m.isPlayerMap && cell.Type == types.CELL_CURSOR {
+			if !m.isPlayerMap && (cell.Type == types.CELL_CURSOR || cell.Type == types.CELL_SHIP) && !cell.Hit {
 				content = ' '
 			}
 
@@ -333,8 +469,8 @@ func (m *Map) draw() error {
 }
 
 func (m *Map) placeShip(entity types.Ship, o types.Orientation) error {
-	if !utils.ValidateEntityPosition(entity, m.gridHeight, m.gridWidth) {
-		return errors.New("Invalid entity position")
+	if !utils.ValidEntityPosition(entity, m.gridHeight, m.gridWidth) {
+		return fmt.Errorf("Invalid entity position: %s, start: %d,%d", utils.GetShipType(entity.Type), entity.StartPosition.X, entity.StartPosition.Y)
 	}
 
 	sprite := utils.GetEntitySprite(entity.Type)
@@ -347,9 +483,10 @@ func (m *Map) placeShip(entity types.Ship, o types.Orientation) error {
 				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: entity.StartPosition.X, Y: y}] = types.Cell{
-				Content: sprite[s],
-				Type:    types.CELL_SHIP,
-				Color:   entity.Color,
+				Content:  sprite[s],
+				Type:     types.CELL_SHIP,
+				Color:    entity.Color,
+				ShipType: entity.Type,
 			}
 			s++
 		}
@@ -359,9 +496,10 @@ func (m *Map) placeShip(entity types.Ship, o types.Orientation) error {
 				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: x, Y: entity.StartPosition.Y}] = types.Cell{
-				Content: sprite[s],
-				Type:    types.CELL_SHIP,
-				Color:   entity.Color,
+				Content:  sprite[s],
+				Type:     types.CELL_SHIP,
+				Color:    entity.Color,
+				ShipType: entity.Type,
 			}
 			s++
 		}
@@ -376,9 +514,10 @@ func (m *Map) createEmptyGrid() *map[types.Position]types.Cell {
 	for x := 0; x < m.gridWidth; x++ {
 		for y := 0; y < m.gridHeight; y++ {
 			grid[types.Position{X: x, Y: y}] = types.Cell{
-				Content: ' ',
-				Type:    types.CELL_WATER,
-				Color:   types.COLOR_WATER,
+				Content:  ' ',
+				Type:     types.CELL_WATER,
+				Color:    types.COLOR_WATER,
+				ShipType: types.NONE,
 			}
 		}
 	}
@@ -421,4 +560,13 @@ func (m *Map) drawBorders() error {
 	}
 
 	return nil
+}
+
+func (m *Map) hasEmptyCells() bool {
+	for _, cell := range *m.grid {
+		if cell.Type == types.CELL_BLANK || cell.Type == types.CELL_WATER {
+			return true
+		}
+	}
+	return false
 }
