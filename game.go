@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/rthornton128/goncurses"
 	"github.com/vector-ops/goships/screens"
@@ -51,7 +52,11 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key) *Ga
 		nil,                                     // gridHeight
 		true,                                    // enableKeyboard
 	)
-	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE))
+	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE), map[string]*StatBoard{
+		"SCORE":  {Title: "SCORE", StatHeader: []string{"Player", "Enemy"}, StatValues: []string{"0", "0"}},
+		"PLAYER": {Title: "PLAYER", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
+		"ENEMY":  {Title: "ENEMY", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
+	})
 	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE))
 	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)
 	return gs
@@ -102,13 +107,29 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 				if gs.PlayerMap.HasPlacedShips() {
 					gs.playerHasSetShips = true
 
-					gs.EnemyMap.PlaceRandomShips()
-
+					err := gs.EnemyMap.PlaceRandomShips()
+					if err != nil {
+						utils.WriteError(err)
+					}
+					gs.EnemyMap.SaveState()
 					gs.PlayerMap.EnableCursor(false)
 					gs.EnemyMap.EnableCursor(true)
 				} else {
 					gs.PlayerMap.EnableCursor(true)
 					gs.EnemyMap.EnableCursor(false)
+				}
+			}
+
+			enemyStats := gs.EnemyMap.GetStats()
+			playerStats := gs.PlayerMap.GetStats()
+			gs.ScoreBoard.SetStat("PLAYER", []string{strconv.Itoa(enemyStats.Hits), strconv.Itoa(enemyStats.Misses)})
+			gs.ScoreBoard.SetStat("ENEMY", []string{strconv.Itoa(playerStats.Hits), strconv.Itoa(playerStats.Misses)})
+
+			gs.ScoreBoard.SetStat("SCORE", []string{strconv.Itoa(enemyStats.ShipsHit), strconv.Itoa(playerStats.ShipsHit)})
+
+			if gs.playerHasSetShips {
+				if gs.PlayerMap.GetTurn() < gs.EnemyMap.GetTurn() {
+					gs.PlayerMap.HitRandomSpot()
 				}
 			}
 
