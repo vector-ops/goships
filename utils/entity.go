@@ -2,7 +2,7 @@ package utils
 
 import "github.com/vector-ops/goships/types"
 
-func ValidateEntityPosition(e types.Ship, gridHeight, gridWidth int) bool {
+func ValidEntityPosition(e types.Ship, gridHeight, gridWidth int) bool {
 	return e.StartPosition.X <= gridWidth && e.StartPosition.Y <= gridHeight && e.EndPosition.X <= gridWidth && e.EndPosition.Y <= gridHeight && e.StartPosition.X >= 0 && e.StartPosition.Y >= 0 && e.EndPosition.X >= 0 && e.EndPosition.Y >= 0
 }
 
@@ -49,4 +49,40 @@ func CheckOverlap(grid map[types.Position]types.Cell, ship types.Ship) bool {
 		}
 	}
 	return false
+}
+
+func GetShipType(ship types.ShipType) string {
+	switch ship {
+	case types.AIRCRAFT_CARRIER:
+		return "Carrier"
+	case types.BATTLESHIP:
+		return "Battleship"
+	case types.CRUISER:
+		return "Cruiser"
+	case types.SUBMARINE:
+		return "Submarine"
+	case types.DESTROYER:
+		return "Destroyer"
+	default:
+		return "Unknown"
+	}
+}
+
+func GetCellType(cell types.CellType) string {
+	switch cell {
+	case types.CELL_BLANK:
+		return "Water"
+	case types.CELL_SHIP:
+		return "Ship"
+	case types.CELL_MISS:
+		return "Miss"
+	case types.CELL_DESTROYED:
+		return "Destroyed"
+	case types.CELL_CURSOR:
+		return "Cursor"
+	case types.CELL_WATER:
+		return "Water"
+	default:
+		return "Unknown"
+	}
 }
