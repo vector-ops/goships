@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/rthornton128/goncurses"
 	"github.com/vector-ops/goships/types"
@@ -16,6 +15,9 @@ type ScoreBoard struct {
 	titleColor   int16
 	CurrentScore Score
 	OverallScore Score
+
+	stats      map[string]*StatBoard
+	statTitles []string
 }
 
 type Score struct {
@@ -23,11 +25,26 @@ type Score struct {
 	EnemyScore  int
 }
 
-func NewScoreBoard(win *goncurses.Window) *ScoreBoard {
+type StatBoard struct {
+	Title      string
+	StatHeader []string
+	StatValues []string
+}
+
+func NewScoreBoard(win *goncurses.Window, stats map[string]*StatBoard) *ScoreBoard {
+	statTitles := make([]string, len(stats))
+	i := 0
+	for title := range stats {
+		statTitles[i] = title
+		i++
+	}
+
 	return &ScoreBoard{
 		win:        win,
 		title:      "SCORE",
 		titleColor: types.BLUE_BLACK,
+		stats:      stats,
+		statTitles: statTitles,
 	}
 }
 
@@ -37,11 +54,7 @@ func (s *ScoreBoard) Render(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// _, mx := s.win.MaxYX()
 
-	// s.win.ColorOn(s.titleColor)
-	// s.win.MovePrint(1, (mx/2)-len(s.title)/2, s.title)
-	// s.win.ColorOff(s.titleColor)
 	s.draw()
 	s.win.NoutRefresh()
 
@@ -57,22 +70,30 @@ func (s *ScoreBoard) draw() error {
 	startY := 1
 	titleOffset := 2
 
-	// draw score board
-	scoreStat := [][]string{
-		{"Player", "Enemy"},
-		{strconv.Itoa(s.CurrentScore.PlayerScore), strconv.Itoa(s.CurrentScore.EnemyScore)},
+	for _, title := range s.statTitles {
+		stats := [][]string{
+			s.stats[title].StatHeader,
+			s.stats[title].StatValues,
+		}
+		s.drawStatBoard(startX, startY, title, stats)
+		startY += (len(stats[0]) + titleOffset) * 2
 	}
-	s.drawStatBoard(startX, startY, "SCORE", scoreStat)
-	startY += (len(scoreStat[0]) + titleOffset) * 2
-
-	// draw alive ships (later reuse for showing available ships at the beginning of the game)
-	shipStat := [][]string{
-		{"Player", "Enemy"},
-		{"3", "4"},
-	}
-	s.drawStatBoard(startX, startY, "SHIPS", shipStat)
 
 	return nil
+}
+
+func (s *ScoreBoard) SetScorePlayerScore(score int) {
+	s.CurrentScore.PlayerScore = score
+}
+
+func (s *ScoreBoard) SetScoreEnemyScore(score int) {
+	s.CurrentScore.EnemyScore = score
+}
+
+func (s *ScoreBoard) SetStat(title string, statValues []string) {
+	stat := s.stats[title]
+	stat.Title = title
+	stat.StatValues = statValues
 }
 
 func (s *ScoreBoard) drawStatBoard(startX, startY int, title string, stats [][]string) error {
