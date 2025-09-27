@@ -17,6 +17,7 @@ const (
 	DESTROYER
 	SUBMARINE
 	AIRCRAFT_CARRIER
+	NONE
 )
 
 type Orientation int
@@ -39,7 +40,12 @@ const (
 type CellType int
 
 const (
-	CELL_BLANK CellType = iota
+	CELL_CURSOR CellType = iota
+	CELL_SHIP
+	CELL_DESTROYED
+	CELL_MISS
+	CELL_WATER
+	CELL_BLANK
 	CELL_WALL_HORIZONTAL
 	CELL_WALL_VERTICAL
 	CELL_WALL_CORNER
@@ -51,11 +57,6 @@ const (
 	CELL_WALL_TEE_RIGHT
 	CELL_WALL_TEE_UP
 	CELL_WALL_TEE_DOWN
-	CELL_CURSOR
-	CELL_SHIP
-	CELL_DESTROYED
-	CELL_MISS
-	CELL_WATER
 )
 
 var WALLS_BOX = map[CellType]rune{
@@ -114,7 +115,8 @@ const (
 )
 
 type Position struct {
-	X, Y int
+	X int `json:"x"`
+	Y int `json:"y"`
 }
 
 type Ship struct {
@@ -133,7 +135,9 @@ var (
 )
 
 type Cell struct {
-	Type    CellType
-	Color   int16
-	Content rune
+	Type     CellType `json:"type"`
+	ShipType ShipType `json:"ship_type"`
+	Color    int16    `json:"color"`
+	Content  rune     `json:"content"`
+	Hit      bool     `json:"hit"`
 }
