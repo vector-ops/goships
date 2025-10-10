@@ -51,7 +51,7 @@ go build
 # Move the binary to a directory in your PATH
 mv goships $HOME/bin/
 
-# or run with in the project directory
+# Or run within the project directory
 ./goships
 ```
 
