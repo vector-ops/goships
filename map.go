@@ -19,7 +19,8 @@ const (
 )
 
 type Map struct {
-	win *goncurses.Window
+	win   *goncurses.Window
+	debug bool
 
 	title          string
 	titleColor     int16
@@ -51,9 +52,10 @@ type Cursor struct {
 	shipType      *types.ShipType
 }
 
-func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor int16, startingGrid *map[types.Position]types.Cell, gridWidth, gridHeight *int, enableKeyboard bool) *Map {
+func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor int16, startingGrid *map[types.Position]types.Cell, gridWidth, gridHeight *int, enableKeyboard bool, debug bool) *Map {
 	m := &Map{
 		win:            win,
+		debug:          debug,
 		title:          title,
 		titleColor:     titleColor,
 		gridHeight:     DEFAULT_GRID_HEIGHT,
@@ -206,7 +208,6 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 			cell := (*m.grid)[m.cursor.startPosition]
 			if cell.Type == types.CELL_WATER || cell.Type == types.CELL_CURSOR {
 				(*m.grid)[m.cursor.startPosition] = types.Cell{
-					// ShipType: cell.ShipType,
 					Type:    types.CELL_MISS,
 					Color:   types.COLOR_MISS,
 					Content: 'x',

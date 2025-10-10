@@ -8,15 +8,17 @@ import (
 )
 
 type Guide struct {
-	win *goncurses.Window
+	win   *goncurses.Window
+	debug bool
 
 	title      string
 	titleColor int16
 }
 
-func NewGuide(win *goncurses.Window) *Guide {
+func NewGuide(win *goncurses.Window, debug bool) *Guide {
 	return &Guide{
 		win:        win,
+		debug:      debug,
 		title:      "GUIDE",
 		titleColor: types.BLUE_BLACK,
 	}

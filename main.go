@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -14,6 +15,27 @@ import (
 )
 
 func main() {
+	var debug bool
+	args := os.Args[1:]
+
+	if len(args) != 0 {
+		if args[0] == "--debug" || args[0] == "-d" {
+			wd, err := os.Getwd()
+			if err != nil {
+				wd = "unknown"
+			}
+			debug = true
+			fmt.Println("Debug mode enabled. You can save game state by pressing 's'")
+			fmt.Printf("Find logs in the logs directory: %s/logs\n", wd)
+			if len(args) == 2 && args[1] == "0" {
+			} else {
+				fmt.Println("Starting game in 5 seconds...")
+				fmt.Println("Use 0 with --debug flag to skip this message")
+				time.Sleep(time.Second * 5)
+			}
+		}
+	}
+
 	stdscr, err := gc.Init()
 	if err != nil {
 		log.Fatal(err)
@@ -22,13 +44,13 @@ func main() {
 
 	h, w := gc.StdScr().MaxYX()
 	if h < 32 || w < 40 {
-		gc.End() // restore terminal
+		gc.End() // restore terminal before printing errors
 		fmt.Fprintf(os.Stderr, "Terminal too small. Minimum size: 32x40. Current size: %dx%d\n", h, w)
 		return
 	}
 
 	if err := gc.StartColor(); err != nil {
-		gc.End() // restore terminal
+		gc.End()
 		fmt.Fprintf(os.Stderr, "Failed to start color mode: %v\n", err)
 		return
 	}
@@ -69,11 +91,7 @@ func main() {
 
 	go utils.HandleKeyboardEvent(stdscr, cancel, ch)
 
-	game := NewGameState(stdscr, ch)
-
-	// go func() {
-	// 	log.Print(http.ListenAndServe(":6060", nil))
-	// }()
+	game := NewGameState(stdscr, ch, debug)
 
 	// clear previous logs
 	utils.RemoveFilesByPattern("logs/*.log")

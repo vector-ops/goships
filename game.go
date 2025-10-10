@@ -7,13 +7,13 @@ import (
 	"strconv"
 
 	"github.com/rthornton128/goncurses"
-	"github.com/vector-ops/goships/screens"
 	"github.com/vector-ops/goships/types"
 	"github.com/vector-ops/goships/utils"
 )
 
 type GameState struct {
 	win          *goncurses.Window
+	debug        bool
 	keyInputChan chan goncurses.Key
 
 	PlayerMap *Map
@@ -26,9 +26,10 @@ type GameState struct {
 	playerHasSetShips bool
 }
 
-func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key) *GameState {
+func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, debug bool) *GameState {
 	gs := &GameState{
 		win:          stdscr,
+		debug:        debug,
 		keyInputChan: keyInputChan,
 	}
 
@@ -41,6 +42,7 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key) *Ga
 		nil,                                      // gridWidth
 		nil,                                      // gridHeight
 		true,                                     // enableKeyboard
+		debug,
 	)
 	gs.EnemyMap = NewMap(
 		calculateSubWindow(stdscr, types.ENEMY), // window
@@ -51,57 +53,29 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key) *Ga
 		nil,                                     // gridWidth
 		nil,                                     // gridHeight
 		true,                                    // enableKeyboard
+		debug,
 	)
 	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE), map[string]*StatBoard{
 		"SCORE":  {Title: "SCORE", StatHeader: []string{"Player", "Enemy"}, StatValues: []string{"0", "0"}},
 		"PLAYER": {Title: "PLAYER", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
 		"ENEMY":  {Title: "ENEMY", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
-	})
-	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE))
+	}, debug)
+	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE), debug)
 	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)
 	return gs
 }
 
 func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) error {
-	loading := false
-	loadingContext, loadingCancel := context.WithCancel(ctx)
-
-	go func() {
-		utils.Delay(2000)
-		loading = false
-		loadingCancel()
-	}()
-
 	for {
 		select {
 		case <-ctx.Done():
 			gs.CloseResources()
-			loadingCancel()
 			return nil
 		case key := <-gs.keyInputChan:
 			gs.PlayerMap.HandleKeyInput(key)
 			gs.EnemyMap.HandleKeyInput(key)
 
 		default:
-			if loading {
-				screens.ShowLoadingScreen(loadingContext, gs.win, nil)
-				gs.win.Erase()
-				gs.win.Refresh()
-				screens.ShowWelcomeScreen(ctx, gs.win)
-				gs.win.Erase()
-				gs.win.Refresh()
-			}
-
-			// gameType := screens.ShowMenuScreen(ctx, gs.menuWindow)
-			// gs.menuWindow.Delete()
-			// gs.win.Erase()
-			// gs.win.Refresh()
-
-			// switch gameType {
-			// case types.QUIT:
-			// 	cancel()
-			// default:
-			// }
 
 			if !gs.playerHasSetShips {
 				if gs.PlayerMap.HasPlacedShips() {
@@ -111,10 +85,12 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 					if err != nil {
 						utils.WriteError(err)
 					}
-					gs.EnemyMap.SaveState()
 					gs.PlayerMap.EnableCursor(false)
 					gs.EnemyMap.EnableCursor(true)
 				} else {
+					if gs.debug {
+						gs.EnemyMap.SaveState()
+					}
 					gs.PlayerMap.EnableCursor(true)
 					gs.EnemyMap.EnableCursor(false)
 				}

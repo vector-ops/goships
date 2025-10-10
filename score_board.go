@@ -9,7 +9,8 @@ import (
 )
 
 type ScoreBoard struct {
-	win *goncurses.Window
+	win   *goncurses.Window
+	debug bool
 
 	title        string
 	titleColor   int16
@@ -31,7 +32,7 @@ type StatBoard struct {
 	StatValues []string
 }
 
-func NewScoreBoard(win *goncurses.Window, stats map[string]*StatBoard) *ScoreBoard {
+func NewScoreBoard(win *goncurses.Window, stats map[string]*StatBoard, debug bool) *ScoreBoard {
 	statTitles := make([]string, len(stats))
 	i := 0
 	for title := range stats {
@@ -41,6 +42,7 @@ func NewScoreBoard(win *goncurses.Window, stats map[string]*StatBoard) *ScoreBoa
 
 	return &ScoreBoard{
 		win:        win,
+		debug:      debug,
 		title:      "SCORE",
 		titleColor: types.BLUE_BLACK,
 		stats:      stats,
