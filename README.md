@@ -1,6 +1,10 @@
 <h1 align="center">GOSHIPS</h1>
 <p align="center">Battleships on the terminal</p>
 
+<p align="center">
+<img src="./readme_assets/game.png" width="80%" alt="goships game screenshot" />
+</p>
+
 ---
 
 ## Overview
@@ -49,9 +53,6 @@ mv goships $HOME/bin/
 ```
 
 ## Usage
-<p align="center">
-<img src="./readme_assets/game.png" width="80%" alt="goships game screenshot" />
-</p>
 
 ```bash
 # Start the game
