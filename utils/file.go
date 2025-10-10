@@ -11,6 +11,18 @@ import (
 )
 
 func SaveMapState(prefix string, m map[types.Position]types.Cell, unplacedShips []string) {
+	_, err := os.Stat("logs")
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.Mkdir("logs", 0o755)
+			if err != nil {
+				WriteError(err)
+				return
+			}
+		} else {
+			return
+		}
+	}
 	timestamp := time.Now().Unix()
 	filepath := filepath.Join("logs", fmt.Sprintf("%s_map_%d.json", prefix, timestamp))
 	file, err := os.Create(filepath)
