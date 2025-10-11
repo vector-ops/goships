@@ -30,7 +30,7 @@ Was too bored so built a terminal battleships game. Can play right in the termin
 - Every hit scores you a point and reveals the cell.
 
 ## Installation
-- Prerequisites (e.g., Go version, OS support)
+- Prerequisites Go 21+
 
 ### Using `go install`
 
