@@ -73,7 +73,7 @@ goships --debug 0
 
 ## TODO
 - [ ] Improve AI.
-- [ ] Store ships state and update when any of its cells are hit instead of calculating every loop.
+- [x] Store ships state and update when any of its cells are hit instead of calculating every loop.
 - [ ] Add multiplayer support.
 - [ ] Optimize CPU usage.
 - [ ] Add menu screen.
