@@ -101,7 +101,7 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 			gs.ScoreBoard.SetStat("PLAYER", []string{strconv.Itoa(enemyStats.Hits), strconv.Itoa(enemyStats.Misses)})
 			gs.ScoreBoard.SetStat("ENEMY", []string{strconv.Itoa(playerStats.Hits), strconv.Itoa(playerStats.Misses)})
 
-			gs.ScoreBoard.SetStat("SCORE", []string{strconv.Itoa(enemyStats.ShipsHit), strconv.Itoa(playerStats.ShipsHit)})
+			gs.ScoreBoard.SetStat("SCORE", []string{strconv.Itoa(enemyStats.GetShipsDestroyed()), strconv.Itoa(playerStats.GetShipsDestroyed())})
 
 			if gs.playerHasSetShips {
 				if gs.PlayerMap.GetTurn() < gs.EnemyMap.GetTurn() {

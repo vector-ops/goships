@@ -38,10 +38,19 @@ type Map struct {
 }
 
 type MapStats struct {
-	Hits       int
-	Misses     int
-	ShipsHit   int
-	TotalShips int
+	Hits   int
+	Misses int
+	Ships  map[types.ShipType]*ShipStatus
+}
+
+func (ms *MapStats) GetShipsDestroyed() int {
+	shipsDestroyed := 0
+	for _, ship := range ms.Ships {
+		if ship.destroyed {
+			shipsDestroyed++
+		}
+	}
+	return shipsDestroyed
 }
 
 type Cursor struct {
@@ -50,6 +59,12 @@ type Cursor struct {
 	orientation   types.Orientation
 	content       []rune
 	shipType      *types.ShipType
+}
+
+type ShipStatus struct {
+	totalCells int
+	hitCells   int
+	destroyed  bool
 }
 
 func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor int16, startingGrid *map[types.Position]types.Cell, gridWidth, gridHeight *int, enableKeyboard bool, debug bool) *Map {
@@ -65,7 +80,6 @@ func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor in
 		enableKeyboard: enableKeyboard,
 		isPlayerMap:    isPlayerMap,
 		unplacedShips:  []types.ShipType{types.AIRCRAFT_CARRIER, types.BATTLESHIP, types.CRUISER, types.DESTROYER, types.SUBMARINE},
-		stats:          &MapStats{},
 	}
 
 	if startingGrid != nil {
@@ -80,6 +94,20 @@ func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor in
 	if gridHeight != nil {
 		m.gridHeight = *gridHeight
 	}
+
+	ships := make(map[types.ShipType]*ShipStatus)
+	for _, shipType := range m.unplacedShips {
+		ships[shipType] = &ShipStatus{
+			totalCells: len(utils.GetEntitySprite(shipType)),
+			hitCells:   0,
+			destroyed:  false,
+		}
+	}
+	mapStats := &MapStats{
+		Ships: ships,
+	}
+
+	m.stats = mapStats
 
 	return m
 }
@@ -101,7 +129,6 @@ func (m *Map) HasPlacedShips() bool {
 }
 
 func (m *Map) GetStats() *MapStats {
-	m.calculateShipsHit()
 	return m.stats
 }
 
@@ -205,27 +232,9 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 				m.cursor.content = utils.GetEntitySprite(*m.cursor.shipType)
 			}
 		} else {
-			cell := (*m.grid)[m.cursor.startPosition]
-			if cell.Type == types.CELL_WATER || cell.Type == types.CELL_CURSOR {
-				(*m.grid)[m.cursor.startPosition] = types.Cell{
-					Type:    types.CELL_MISS,
-					Color:   types.COLOR_MISS,
-					Content: 'x',
-					Hit:     true,
-				}
+			// cell := (*m.grid)[m.cursor.startPosition]
 
-				m.stats.Misses++
-				m.turn++
-			}
-			if cell.Type == types.CELL_SHIP {
-				(*m.grid)[m.cursor.startPosition] = types.Cell{
-					ShipType: cell.ShipType,
-					Type:     types.CELL_DESTROYED,
-					Color:    types.COLOR_HIT,
-					Content:  cell.Content,
-					Hit:      true,
-				}
-				m.stats.Hits++
+			if hit := m.hitCell(m.cursor.startPosition.X, m.cursor.startPosition.Y); hit {
 				m.turn++
 			}
 		}
@@ -334,52 +343,6 @@ func (m *Map) HitRandomSpot() {
 	m.turn++
 }
 
-func (m *Map) calculateShipsHit() {
-	dd := 0
-	bb := 0
-	cv := 0
-	ss := 0
-	ca := 0
-	for col := 0; col < m.gridWidth; col++ {
-		for row := 0; row < m.gridHeight; row++ {
-			cell := (*m.grid)[types.Position{X: col, Y: row}]
-			if cell.Type == types.CELL_DESTROYED {
-				switch cell.ShipType {
-				case types.DESTROYER:
-					dd++
-				case types.BATTLESHIP:
-					bb++
-				case types.CRUISER:
-					cv++
-				case types.SUBMARINE:
-					ss++
-				case types.AIRCRAFT_CARRIER:
-					ca++
-				}
-			}
-		}
-	}
-
-	shipsHit := 0
-	if dd == len(types.DESTROYER_SPRITE) {
-		shipsHit++
-	}
-	if bb == len(types.BATTLESHIP_SPRITE) {
-		shipsHit++
-	}
-	if cv == len(types.CRUISER_SPRITE) {
-		shipsHit++
-	}
-	if ss == len(types.SUBMARINE_SPRITE) {
-		shipsHit++
-	}
-	if ca == len(types.CARRIER_SPRITE) {
-		shipsHit++
-	}
-
-	m.stats.ShipsHit = shipsHit
-}
-
 func (m *Map) hitCell(x, y int) bool {
 	cell := (*m.grid)[types.Position{X: x, Y: y}]
 
@@ -404,6 +367,10 @@ func (m *Map) hitCell(x, y int) bool {
 			Color:    types.COLOR_HIT,
 			Content:  cell.Content,
 			Hit:      true,
+		}
+		m.stats.Ships[cell.ShipType].hitCells++
+		if m.stats.Ships[cell.ShipType].hitCells == m.stats.Ships[cell.ShipType].totalCells {
+			m.stats.Ships[cell.ShipType].destroyed = true
 		}
 		m.stats.Hits++
 	}
