@@ -1,4 +1,5 @@
 <h1 align="center">GOSHIPS</h1>
+[![Go Report Card](https://goreportcard.com/badge/github.com/vector-ops/goships)](https://goreportcard.com/report/github.com/vector-ops/goships)
 <p align="center">Battleships on the terminal</p>
 
 <p align="center">
