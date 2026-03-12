@@ -51,6 +51,9 @@ func CheckOverlap(grid map[types.Position]types.Cell, ship types.Ship) bool {
 	return false
 }
 
+// GetShipType returns the string representation of ShipType
+//
+// Deprecated: GetShipType is deprecated. Use [ShipType.String] instead
 func GetShipType(ship types.ShipType) string {
 	switch ship {
 	case types.AIRCRAFT_CARRIER:
@@ -68,6 +71,9 @@ func GetShipType(ship types.ShipType) string {
 	}
 }
 
+// GetCellType returns the string representation of [CellType]
+//
+// Deprecated: GetCellType is deprecated. Use [CellType.String] instead
 func GetCellType(cell types.CellType) string {
 	switch cell {
 	case types.CELL_BLANK:

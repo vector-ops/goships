@@ -11,6 +11,25 @@ const (
 
 type ShipType int
 
+func (st ShipType) String() string {
+	switch st {
+	case 0:
+		return "none"
+	case 1:
+		return "cruiser"
+	case 2:
+		return "destroyer"
+	case 3:
+		return "submarine"
+	case 4:
+		return "aircraft_carrier"
+	case 5:
+		return "battleship"
+	default:
+		return "none"
+	}
+}
+
 const (
 	BATTLESHIP ShipType = iota
 	CRUISER
@@ -38,6 +57,25 @@ const (
 )
 
 type CellType int
+
+func (ct CellType) String() string {
+	switch ct {
+	case 0:
+		return "cursor"
+	case 1:
+		return "ship"
+	case 2:
+		return "destroyed"
+	case 3:
+		return "miss"
+	case 4:
+		return "water"
+	case 5:
+		return "blank"
+	default:
+		return "wall"
+	}
+}
 
 const (
 	CELL_CURSOR CellType = iota

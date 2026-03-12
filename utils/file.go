@@ -33,10 +33,10 @@ func SaveMapState(prefix string, m map[types.Position]types.Cell, unplacedShips 
 	defer file.Close()
 
 	type SerializableCell struct {
-		Type     string `json:"type"`
+		Type     string `json:"cell_type"`
 		ShipType string `json:"ship_type"`
-		Color    int16  `json:"color"`
-		Content  string `json:"content"`
+		Color    int16  `json:"cell_color"`
+		Content  string `json:"cell_content"`
 		Hit      bool   `json:"hit"`
 	}
 
@@ -51,8 +51,8 @@ func SaveMapState(prefix string, m map[types.Position]types.Cell, unplacedShips 
 	var entries []MapEntry
 	for k, v := range m {
 		entries = append(entries, MapEntry{Key: k, Value: SerializableCell{
-			Type:     GetCellType(v.Type),
-			ShipType: GetShipType(v.ShipType),
+			Type:     v.Type.String(),
+			ShipType: v.ShipType.String(),
 			Color:    v.Color,
 			Content:  string(v.Content),
 			Hit:      v.Hit,
