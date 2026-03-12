@@ -55,10 +55,10 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, deb
 		true,                                    // enableKeyboard
 		debug,
 	)
-	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.SCORE), map[string]*StatBoard{
-		"SCORE":  {Title: "SCORE", StatHeader: []string{"Player", "Enemy"}, StatValues: []string{"0", "0"}},
-		"PLAYER": {Title: "PLAYER", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
-		"ENEMY":  {Title: "ENEMY", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
+	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.Score), []StatBoard{
+		{Title: "SCORE", StatHeader: []string{"Player", "Enemy"}, StatValues: []string{"0", "0"}},
+		{Title: "PLAYER", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
+		{Title: "ENEMY", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
 	}, debug)
 	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE), debug)
 	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)

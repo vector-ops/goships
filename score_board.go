@@ -17,8 +17,7 @@ type ScoreBoard struct {
 	CurrentScore Score
 	OverallScore Score
 
-	stats      map[string]*StatBoard
-	statTitles []string
+	stats []StatBoard
 }
 
 type Score struct {
@@ -32,13 +31,7 @@ type StatBoard struct {
 	StatValues []string
 }
 
-func NewScoreBoard(win *goncurses.Window, stats map[string]*StatBoard, debug bool) *ScoreBoard {
-	statTitles := make([]string, len(stats))
-	i := 0
-	for title := range stats {
-		statTitles[i] = title
-		i++
-	}
+func NewScoreBoard(win *goncurses.Window, stats []StatBoard, debug bool) *ScoreBoard {
 
 	return &ScoreBoard{
 		win:        win,
@@ -46,7 +39,6 @@ func NewScoreBoard(win *goncurses.Window, stats map[string]*StatBoard, debug boo
 		title:      "SCORE",
 		titleColor: types.BLUE_BLACK,
 		stats:      stats,
-		statTitles: statTitles,
 	}
 }
 
@@ -72,12 +64,12 @@ func (s *ScoreBoard) draw() error {
 	startY := 1
 	titleOffset := 2
 
-	for _, title := range s.statTitles {
+	for _, stat := range s.stats {
 		stats := [][]string{
-			s.stats[title].StatHeader,
-			s.stats[title].StatValues,
+			stat.StatHeader,
+			stat.StatValues,
 		}
-		s.drawStatBoard(startX, startY, title, stats)
+		s.drawStatBoard(startX, startY, stat.Title, stats)
 		startY += (len(stats[0]) + titleOffset) * 2
 	}
 
@@ -93,9 +85,11 @@ func (s *ScoreBoard) SetScoreEnemyScore(score int) {
 }
 
 func (s *ScoreBoard) SetStat(title string, statValues []string) {
-	stat := s.stats[title]
-	stat.Title = title
-	stat.StatValues = statValues
+	for i, stat := range s.stats {
+		if stat.Title == title {
+			s.stats[i].StatValues = statValues
+		}
+	}
 }
 
 func (s *ScoreBoard) drawStatBoard(startX, startY int, title string, stats [][]string) error {
