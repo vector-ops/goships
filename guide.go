@@ -20,7 +20,7 @@ func NewGuide(win *goncurses.Window, debug bool) *Guide {
 		win:        win,
 		debug:      debug,
 		title:      "GUIDE",
-		titleColor: types.BLUE_BLACK,
+		titleColor: types.BlueBlack,
 	}
 }
 
@@ -54,33 +54,33 @@ func (g *Guide) draw() {
 	offsetX := 2
 
 	// Water
-	g.win.ColorOn(types.COLOR_WATER)
+	g.win.ColorOn(types.ColorWater)
 	g.win.MovePrint(2, 0+offsetX, "   ")
-	g.win.ColorOff(types.COLOR_WATER)
+	g.win.ColorOff(types.ColorWater)
 	g.win.MovePrint(2, 4+offsetX, "- Water")
 
 	// Hit
-	g.win.ColorOn(types.COLOR_HIT)
+	g.win.ColorOn(types.ColorHit)
 	g.win.MovePrint(3, 0+offsetX, "   ")
-	g.win.ColorOff(types.COLOR_HIT)
+	g.win.ColorOff(types.ColorHit)
 	g.win.MovePrint(3, 4+offsetX, "- Hit")
 
 	// Miss
-	g.win.ColorOn(types.COLOR_MISS)
+	g.win.ColorOn(types.ColorMiss)
 	g.win.MovePrint(4, 0+offsetX, " x ")
-	g.win.ColorOff(types.COLOR_MISS)
+	g.win.ColorOff(types.ColorMiss)
 	g.win.MovePrint(4, 4+offsetX, "- Miss")
 
 	// Ship
-	g.win.ColorOn(types.COLOR_SHIP)
+	g.win.ColorOn(types.ColorShip)
 	g.win.MovePrint(5, 0+offsetX, "   ")
-	g.win.ColorOff(types.COLOR_SHIP)
+	g.win.ColorOff(types.ColorShip)
 	g.win.MovePrint(5, 4+offsetX, "- Ship")
 
 	// Cursor
-	g.win.ColorOn(types.COLOR_CURSOR)
+	g.win.ColorOn(types.ColorCursor)
 	g.win.MovePrint(6, 0+offsetX, "   ")
-	g.win.ColorOff(types.COLOR_CURSOR)
+	g.win.ColorOff(types.ColorCursor)
 	g.win.MovePrint(6, 4+offsetX, "- Cursor")
 
 	// Ships

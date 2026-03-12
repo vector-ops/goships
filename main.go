@@ -25,7 +25,7 @@ func main() {
 				wd = "unknown"
 			}
 			debug = true
-			fmt.Println("Debug mode enabled. You can save game state by pressing 's'")
+			fmt.Println("Debug mode enabled. You can save game state by pressing 'u'")
 			fmt.Printf("Find logs in the logs directory: %s/logs\n", wd)
 			if len(args) == 2 && args[1] == "0" {
 			} else {
@@ -64,26 +64,26 @@ func main() {
 
 	gc.UseDefaultColors()
 
-	gc.InitPair(types.COLOR_WATER, gc.C_BLUE, gc.C_BLUE)
-	gc.InitPair(types.COLOR_CURSOR, gc.C_BLACK, gc.C_WHITE)
-	gc.InitPair(types.COLOR_HIT, gc.C_BLACK, gc.C_RED)
-	gc.InitPair(types.COLOR_WALL, -1, -1)
-	gc.InitPair(types.COLOR_SHIP, gc.C_BLACK, gc.C_GREEN)
-	gc.InitPair(types.COLOR_MISS, gc.C_BLACK, gc.C_BLUE)
-	gc.InitPair(types.WHITE_BLACK, gc.C_WHITE, -1)
-	gc.InitPair(types.RED_BLACK, gc.C_RED, -1)
-	gc.InitPair(types.GREEN_BLACK, gc.C_GREEN, -1)
-	gc.InitPair(types.BLUE_BLACK, gc.C_BLUE, -1)
-	gc.InitPair(types.YELLOW_BLACK, gc.C_YELLOW, -1)
-	gc.InitPair(types.MAGENTA_BLACK, gc.C_MAGENTA, -1)
-	gc.InitPair(types.CYAN_BLACK, gc.C_CYAN, -1)
-	gc.InitPair(types.WHITE_RED, gc.C_WHITE, gc.C_RED)
-	gc.InitPair(types.WHITE_GREEN, gc.C_WHITE, gc.C_GREEN)
-	gc.InitPair(types.WHITE_BLUE, gc.C_WHITE, gc.C_BLUE)
-	gc.InitPair(types.BLACK_YELLOW, gc.C_BLACK, gc.C_YELLOW)
-	gc.InitPair(types.BLACK_CYAN, gc.C_BLACK, gc.C_CYAN)
-	gc.InitPair(types.BLACK_MAGENTA, gc.C_BLACK, gc.C_MAGENTA)
-	gc.InitPair(types.BLACK_RED, gc.C_BLACK, gc.C_RED)
+	gc.InitPair(types.ColorWater, gc.C_BLUE, gc.C_BLUE)
+	gc.InitPair(types.ColorCursor, gc.C_BLACK, gc.C_WHITE)
+	gc.InitPair(types.ColorHit, gc.C_BLACK, gc.C_RED)
+	gc.InitPair(types.ColorWall, -1, -1)
+	gc.InitPair(types.ColorShip, gc.C_BLACK, gc.C_GREEN)
+	gc.InitPair(types.ColorMiss, gc.C_BLACK, gc.C_BLUE)
+	gc.InitPair(types.WhiteBlack, gc.C_WHITE, -1)
+	gc.InitPair(types.RedBlack, gc.C_RED, -1)
+	gc.InitPair(types.GreenBlack, gc.C_GREEN, -1)
+	gc.InitPair(types.BlueBlack, gc.C_BLUE, -1)
+	gc.InitPair(types.YellowBlack, gc.C_YELLOW, -1)
+	gc.InitPair(types.MagentaBlack, gc.C_MAGENTA, -1)
+	gc.InitPair(types.CyanBlack, gc.C_CYAN, -1)
+	gc.InitPair(types.WhiteRed, gc.C_WHITE, gc.C_RED)
+	gc.InitPair(types.WhiteGreen, gc.C_WHITE, gc.C_GREEN)
+	gc.InitPair(types.WhiteBlue, gc.C_WHITE, gc.C_BLUE)
+	gc.InitPair(types.BlackYellow, gc.C_BLACK, gc.C_YELLOW)
+	gc.InitPair(types.BlackCyan, gc.C_BLACK, gc.C_CYAN)
+	gc.InitPair(types.BlackMagenta, gc.C_BLACK, gc.C_MAGENTA)
+	gc.InitPair(types.BlackRed, gc.C_BLACK, gc.C_RED)
 
 	ctx, cancel := context.WithCancel(context.Background())
 

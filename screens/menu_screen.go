@@ -10,7 +10,7 @@ import (
 
 func ShowMenuScreen(ctx context.Context, menuwin *goncurses.Window) types.GameType {
 
-	menu_items := map[types.GameType]string{types.PVE: "play against a bot", types.PVP: "play against other players", types.QUIT: "quit"}
+	menu_items := map[types.GameType]string{types.PvE: "play against a bot", types.PvP: "play against other players", types.Quit: "quit"}
 	items := make([]*goncurses.MenuItem, len(menu_items))
 
 	i := 0
@@ -29,7 +29,7 @@ func ShowMenuScreen(ctx context.Context, menuwin *goncurses.Window) types.GameTy
 	menu, err := goncurses.NewMenu(items)
 	if err != nil {
 		menuwin.Print(err)
-		return types.QUIT
+		return types.Quit
 	}
 	defer menu.Free()
 
@@ -60,7 +60,7 @@ func ShowMenuScreen(ctx context.Context, menuwin *goncurses.Window) types.GameTy
 
 		switch goncurses.KeyString(ch) {
 		case "q":
-			return types.QUIT
+			return types.Quit
 
 		case "down":
 			menu.Driver(goncurses.REQ_DOWN)

@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	DEFAULT_GRID_WIDTH  = 10
-	DEFAULT_GRID_HEIGHT = 7
-	CELL_HEIGHT         = 2
-	CELL_WIDTH          = 4
-	DEFAULT_TOTAL_SHIPS = 5
+	DefaultGridWidth  = 10
+	DefaultGridHeight = 7
+	CellHeight        = 2
+	CellWidth         = 4
+	DefaultTotalShips = 5
 )
 
 type Map struct {
@@ -73,13 +73,13 @@ func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor in
 		debug:          debug,
 		title:          title,
 		titleColor:     titleColor,
-		gridHeight:     DEFAULT_GRID_HEIGHT,
-		gridWidth:      DEFAULT_GRID_WIDTH,
-		cursor:         &Cursor{startPosition: types.Position{X: 0, Y: 0}, endPosition: types.Position{X: 0, Y: 0}, orientation: types.HORIZONTAL, content: []rune{' '}},
+		gridHeight:     DefaultGridHeight,
+		gridWidth:      DefaultGridWidth,
+		cursor:         &Cursor{startPosition: types.Position{X: 0, Y: 0}, endPosition: types.Position{X: 0, Y: 0}, orientation: types.Horizontal, content: []rune{' '}},
 		enableCursor:   false,
 		enableKeyboard: enableKeyboard,
 		isPlayerMap:    isPlayerMap,
-		unplacedShips:  []types.ShipType{types.AIRCRAFT_CARRIER, types.BATTLESHIP, types.CRUISER, types.DESTROYER, types.SUBMARINE},
+		unplacedShips:  []types.ShipType{types.AircraftCarrier, types.Battleship, types.Cruiser, types.Destroyer, types.Submarine},
 	}
 
 	if startingGrid != nil {
@@ -146,9 +146,9 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 	}
 
 	switch key {
-	case 's':
+	case 'u':
 		m.SaveState()
-	case goncurses.KEY_UP:
+	case goncurses.KEY_UP, 'w':
 		if m.cursor.startPosition.Y > 0 {
 			m.cursor.startPosition.Y--
 			m.cursor.endPosition.Y--
@@ -156,15 +156,15 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].Content}
 			}
 		}
-	case goncurses.KEY_DOWN:
-		if (m.cursor.orientation == types.HORIZONTAL && m.cursor.startPosition.Y < m.gridHeight-1) || (m.cursor.orientation == types.VERTICAL && m.cursor.endPosition.Y < m.gridHeight-1) {
+	case goncurses.KEY_DOWN, 's':
+		if (m.cursor.orientation == types.Horizontal && m.cursor.startPosition.Y < m.gridHeight-1) || (m.cursor.orientation == types.Vertical && m.cursor.endPosition.Y < m.gridHeight-1) {
 			m.cursor.startPosition.Y++
 			m.cursor.endPosition.Y++
 			if !m.isPlayerMap {
 				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].Content}
 			}
 		}
-	case goncurses.KEY_LEFT:
+	case goncurses.KEY_LEFT, 'a':
 		if m.cursor.startPosition.X > 0 {
 			m.cursor.startPosition.X--
 			m.cursor.endPosition.X--
@@ -172,8 +172,8 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 				m.cursor.content = []rune{(*m.grid)[m.cursor.startPosition].Content}
 			}
 		}
-	case goncurses.KEY_RIGHT:
-		if (m.cursor.orientation == types.HORIZONTAL && m.cursor.endPosition.X < m.gridWidth-1) || (m.cursor.orientation == types.VERTICAL && m.cursor.startPosition.X < m.gridWidth-1) {
+	case goncurses.KEY_RIGHT, 'd':
+		if (m.cursor.orientation == types.Horizontal && m.cursor.endPosition.X < m.gridWidth-1) || (m.cursor.orientation == types.Vertical && m.cursor.startPosition.X < m.gridWidth-1) {
 			m.cursor.startPosition.X++
 			m.cursor.endPosition.X++
 			if !m.isPlayerMap {
@@ -186,10 +186,10 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 			return
 		}
 		newOrientation := m.cursor.orientation
-		if newOrientation == types.HORIZONTAL {
-			newOrientation = types.VERTICAL
+		if newOrientation == types.Horizontal {
+			newOrientation = types.Vertical
 		} else {
-			newOrientation = types.HORIZONTAL
+			newOrientation = types.Horizontal
 		}
 
 		sprite := m.cursor.content
@@ -218,7 +218,7 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 				Type:          *m.cursor.shipType,
 				StartPosition: m.cursor.startPosition,
 				EndPosition:   m.cursor.endPosition,
-				Color:         types.COLOR_SHIP,
+				Color:         types.ColorShip,
 			}
 
 			m.placeShip(entity, m.cursor.orientation)
@@ -299,9 +299,9 @@ func (m *Map) PlaceRandomShips() error {
 
 			randOrientation := rand.Intn(2)
 			if randOrientation == 0 {
-				orientation = types.HORIZONTAL
+				orientation = types.Horizontal
 			} else {
-				orientation = types.VERTICAL
+				orientation = types.Vertical
 			}
 
 			startPosition = types.Position{X: x, Y: y}
@@ -313,7 +313,7 @@ func (m *Map) PlaceRandomShips() error {
 			Type:          shipType,
 			StartPosition: startPosition,
 			EndPosition:   endPosition,
-			Color:         types.COLOR_SHIP,
+			Color:         types.ColorShip,
 		}
 
 		err := m.placeShip(ship, orientation)
@@ -346,25 +346,25 @@ func (m *Map) HitRandomSpot() {
 func (m *Map) hitCell(x, y int) bool {
 	cell := (*m.grid)[types.Position{X: x, Y: y}]
 
-	if cell.Type == types.CELL_DESTROYED || cell.Type == types.CELL_MISS {
+	if cell.Type == types.CellDestroyed || cell.Type == types.CellMiss {
 		return false
 	}
 
-	if cell.Type == types.CELL_WATER || cell.Type == types.CELL_CURSOR {
+	if cell.Type == types.CellWater || cell.Type == types.CellCursor {
 		(*m.grid)[types.Position{X: x, Y: y}] = types.Cell{
-			Type:    types.CELL_MISS,
-			Color:   types.COLOR_MISS,
+			Type:    types.CellMiss,
+			Color:   types.ColorMiss,
 			Content: 'x',
 			Hit:     true,
 		}
 
 		m.stats.Misses++
 	}
-	if cell.Type == types.CELL_SHIP {
+	if cell.Type == types.CellShip {
 		(*m.grid)[types.Position{X: x, Y: y}] = types.Cell{
 			ShipType: cell.ShipType,
-			Type:     types.CELL_DESTROYED,
-			Color:    types.COLOR_HIT,
+			Type:     types.CellDestroyed,
+			Color:    types.ColorHit,
 			Content:  cell.Content,
 			Hit:      true,
 		}
@@ -380,11 +380,11 @@ func (m *Map) hitCell(x, y int) bool {
 
 func (m *Map) draw() error {
 	my, mx := m.win.MaxYX()
-	offsetX := CELL_WIDTH/2 - 1
-	offsetY := CELL_HEIGHT / 2
+	offsetX := CellWidth/2 - 1
+	offsetY := CellHeight / 2
 
-	startX := (mx - m.gridWidth*CELL_WIDTH) / 2
-	startY := (my - m.gridHeight*CELL_HEIGHT) / 2
+	startX := (mx - m.gridWidth*CellWidth) / 2
+	startY := (my - m.gridHeight*CellHeight) / 2
 
 	for col := 0; col < m.gridWidth; col++ {
 		for row := 0; row < m.gridHeight; row++ {
@@ -393,38 +393,38 @@ func (m *Map) draw() error {
 			if m.enableCursor && col >= m.cursor.startPosition.X && col <= m.cursor.endPosition.X && row >= m.cursor.startPosition.Y && row <= m.cursor.endPosition.Y {
 
 				var relativeIndex int
-				if m.cursor.orientation == types.HORIZONTAL {
+				if m.cursor.orientation == types.Horizontal {
 					relativeIndex = col - m.cursor.startPosition.X
 				} else {
 					relativeIndex = row - m.cursor.startPosition.Y
 				}
 
-				color := types.COLOR_CURSOR
+				color := types.ColorCursor
 
 				if utils.CheckOverlap((*m.grid), types.Ship{StartPosition: m.cursor.startPosition, EndPosition: m.cursor.endPosition}) && m.isPlayerMap {
-					color = types.BLACK_RED
+					color = types.BlackRed
 				}
 
 				hit := cell.Hit
 				cell = types.Cell{
-					Type:    types.CELL_CURSOR,
+					Type:    types.CellCursor,
 					Color:   color,
 					Content: m.cursor.content[relativeIndex],
 					Hit:     hit,
 				}
 			}
 
-			x := (startX + offsetX) + col*CELL_WIDTH
-			y := (startY + offsetY) + row*CELL_HEIGHT
+			x := (startX + offsetX) + col*CellWidth
+			y := (startY + offsetY) + row*CellHeight
 
 			color := cell.Color
 			content := cell.Content
-			if !m.isPlayerMap && cell.Type == types.CELL_SHIP {
-				color = types.COLOR_WATER
+			if !m.isPlayerMap && cell.Type == types.CellShip {
+				color = types.ColorWater
 				content = ' '
 			}
 
-			if !m.isPlayerMap && (cell.Type == types.CELL_CURSOR || cell.Type == types.CELL_SHIP) && !cell.Hit {
+			if !m.isPlayerMap && (cell.Type == types.CellCursor || cell.Type == types.CellShip) && !cell.Hit {
 				content = ' '
 			}
 
@@ -445,27 +445,27 @@ func (m *Map) placeShip(entity types.Ship, o types.Orientation) error {
 	maxSize := len(sprite)
 	s := 0
 	switch o {
-	case types.VERTICAL:
+	case types.Vertical:
 		for y := entity.StartPosition.Y; y <= utils.ExpectedEndCoordinate(entity.StartPosition.Y, sprite); y++ {
 			if s > maxSize {
 				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: entity.StartPosition.X, Y: y}] = types.Cell{
 				Content:  sprite[s],
-				Type:     types.CELL_SHIP,
+				Type:     types.CellShip,
 				Color:    entity.Color,
 				ShipType: entity.Type,
 			}
 			s++
 		}
-	case types.HORIZONTAL:
+	case types.Horizontal:
 		for x := entity.StartPosition.X; x <= utils.ExpectedEndCoordinate(entity.StartPosition.X, sprite); x++ {
 			if s > maxSize {
 				return fmt.Errorf("sprite smaller than entity size, s: %d, entity size: %d", s, maxSize)
 			}
 			(*m.grid)[types.Position{X: x, Y: entity.StartPosition.Y}] = types.Cell{
 				Content:  sprite[s],
-				Type:     types.CELL_SHIP,
+				Type:     types.CellShip,
 				Color:    entity.Color,
 				ShipType: entity.Type,
 			}
@@ -483,9 +483,9 @@ func (m *Map) createEmptyGrid() *map[types.Position]types.Cell {
 		for y := 0; y < m.gridHeight; y++ {
 			grid[types.Position{X: x, Y: y}] = types.Cell{
 				Content:  ' ',
-				Type:     types.CELL_WATER,
-				Color:    types.COLOR_WATER,
-				ShipType: types.NONE,
+				Type:     types.CellWater,
+				Color:    types.ColorWater,
+				ShipType: types.None,
 			}
 		}
 	}
@@ -496,34 +496,34 @@ func (m *Map) createEmptyGrid() *map[types.Position]types.Cell {
 func (m *Map) drawBorders() error {
 	my, mx := m.win.MaxYX()
 
-	if mx < m.gridWidth*CELL_WIDTH || my < m.gridHeight*CELL_HEIGHT {
-		return fmt.Errorf("Window size is too small to accommodate the map. Map is %dx%d, window is %dx%d", m.gridWidth*CELL_WIDTH, m.gridHeight*CELL_HEIGHT, mx, my)
+	if mx < m.gridWidth*CellWidth || my < m.gridHeight*CellHeight {
+		return fmt.Errorf("Window size is too small to accommodate the map. Map is %dx%d, window is %dx%d", m.gridWidth*CellWidth, m.gridHeight*CellHeight, mx, my)
 	}
 
 	// calculate the starting position for the drawBorders
 	// borders start is (max size - total size of all types.Cells) / 2
 	// this gives the starting position of the grid such that it is centered in the window
-	startX := (mx - m.gridWidth*CELL_WIDTH) / 2
-	startY := (my - m.gridHeight*CELL_HEIGHT) / 2
+	startX := (mx - m.gridWidth*CellWidth) / 2
+	startY := (my - m.gridHeight*CellHeight) / 2
 
 	for row := 0; row <= m.gridHeight; row++ {
 		for col := 0; col <= m.gridWidth; col++ {
-			y := startY + row*CELL_HEIGHT
-			x := startX + col*CELL_WIDTH
+			y := startY + row*CellHeight
+			x := startX + col*CellWidth
 
-			m.win.ColorOn(types.COLOR_WALL)
-			m.win.MoveAddChar(y, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_CORNER]))
+			m.win.ColorOn(types.ColorWall)
+			m.win.MoveAddChar(y, x, goncurses.Char(types.WallsASCII[types.CellWallCorner]))
 
 			if col < m.gridWidth {
-				for i := 1; i < CELL_WIDTH; i++ {
-					m.win.MoveAddChar(y, x+i, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_HORIZONTAL]))
+				for i := 1; i < CellWidth; i++ {
+					m.win.MoveAddChar(y, x+i, goncurses.Char(types.WallsASCII[types.CellWallHorizontal]))
 				}
 			}
 
 			if row < m.gridHeight {
-				m.win.MoveAddChar(y+1, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_VERTICAL]))
+				m.win.MoveAddChar(y+1, x, goncurses.Char(types.WallsASCII[types.CellWallVertical]))
 			}
-			m.win.ColorOff(types.COLOR_WALL)
+			m.win.ColorOff(types.ColorWall)
 		}
 	}
 
@@ -532,7 +532,7 @@ func (m *Map) drawBorders() error {
 
 func (m *Map) hasEmptyCells() bool {
 	for _, cell := range *m.grid {
-		if cell.Type == types.CELL_BLANK || cell.Type == types.CELL_WATER {
+		if cell.Type == types.CellBlank || cell.Type == types.CellWater {
 			return true
 		}
 	}

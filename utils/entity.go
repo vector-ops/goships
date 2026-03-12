@@ -7,7 +7,7 @@ func ValidEntityPosition(e types.Ship, gridHeight, gridWidth int) bool {
 }
 
 func ExpectedEndPosition(position types.Position, sprite []rune, o types.Orientation) types.Position {
-	if o == types.HORIZONTAL {
+	if o == types.Horizontal {
 		return types.Position{
 			X: position.X + len(sprite) - 1,
 			Y: position.Y,
@@ -25,16 +25,16 @@ func ExpectedEndCoordinate(start int, sprite []rune) int {
 
 func GetEntitySprite(shipType types.ShipType) []rune {
 	switch shipType {
-	case types.BATTLESHIP:
-		return types.BATTLESHIP_SPRITE
-	case types.AIRCRAFT_CARRIER:
-		return types.CARRIER_SPRITE
-	case types.CRUISER:
-		return types.CRUISER_SPRITE
-	case types.DESTROYER:
-		return types.DESTROYER_SPRITE
-	case types.SUBMARINE:
-		return types.SUBMARINE_SPRITE
+	case types.Battleship:
+		return types.BattleshipSprite
+	case types.AircraftCarrier:
+		return types.CarrierSprite
+	case types.Cruiser:
+		return types.CruiserSprite
+	case types.Destroyer:
+		return types.DestroyerSprite
+	case types.Submarine:
+		return types.SubmarineSprite
 	default:
 		return []rune{}
 	}
@@ -43,7 +43,7 @@ func GetEntitySprite(shipType types.ShipType) []rune {
 func CheckOverlap(grid map[types.Position]types.Cell, ship types.Ship) bool {
 	for i := ship.StartPosition.X; i <= ship.EndPosition.X; i++ {
 		for j := ship.StartPosition.Y; j <= ship.EndPosition.Y; j++ {
-			if grid[types.Position{X: i, Y: j}].Type != types.CELL_CURSOR && grid[types.Position{X: i, Y: j}].Type != types.CELL_WATER {
+			if grid[types.Position{X: i, Y: j}].Type != types.CellCursor && grid[types.Position{X: i, Y: j}].Type != types.CellWater {
 				return true
 			}
 		}
@@ -56,15 +56,15 @@ func CheckOverlap(grid map[types.Position]types.Cell, ship types.Ship) bool {
 // Deprecated: GetShipType is deprecated. Use [ShipType.String] instead
 func GetShipType(ship types.ShipType) string {
 	switch ship {
-	case types.AIRCRAFT_CARRIER:
+	case types.AircraftCarrier:
 		return "Carrier"
-	case types.BATTLESHIP:
+	case types.Battleship:
 		return "Battleship"
-	case types.CRUISER:
+	case types.Cruiser:
 		return "Cruiser"
-	case types.SUBMARINE:
+	case types.Submarine:
 		return "Submarine"
-	case types.DESTROYER:
+	case types.Destroyer:
 		return "Destroyer"
 	default:
 		return "Unknown"
@@ -76,17 +76,17 @@ func GetShipType(ship types.ShipType) string {
 // Deprecated: GetCellType is deprecated. Use [CellType.String] instead
 func GetCellType(cell types.CellType) string {
 	switch cell {
-	case types.CELL_BLANK:
+	case types.CellBlank:
 		return "Water"
-	case types.CELL_SHIP:
+	case types.CellShip:
 		return "Ship"
-	case types.CELL_MISS:
+	case types.CellMiss:
 		return "Miss"
-	case types.CELL_DESTROYED:
+	case types.CellDestroyed:
 		return "Destroyed"
-	case types.CELL_CURSOR:
+	case types.CellCursor:
 		return "Cursor"
-	case types.CELL_WATER:
+	case types.CellWater:
 		return "Water"
 	default:
 		return "Unknown"

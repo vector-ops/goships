@@ -37,7 +37,7 @@ func NewScoreBoard(win *goncurses.Window, stats []StatBoard, debug bool) *ScoreB
 		win:        win,
 		debug:      debug,
 		title:      "SCORE",
-		titleColor: types.BLUE_BLACK,
+		titleColor: types.BlueBlack,
 		stats:      stats,
 	}
 }
@@ -118,18 +118,18 @@ func (s *ScoreBoard) drawStatBoard(startX, startY int, title string, stats [][]s
 	maxRowHeight := 2
 
 	// draw title row upper border
-	s.win.ColorOn(types.COLOR_WALL)
-	s.win.MoveAddChar(startY, startX, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_CORNER]))
+	s.win.ColorOn(types.ColorWall)
+	s.win.MoveAddChar(startY, startX, goncurses.Char(types.WallsASCII[types.CellWallCorner]))
 	for i := 1; i <= (maxColWidth * cols); i++ {
 		x := startX + i
 		y := startY
 
-		s.win.MoveAddChar(y, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_HORIZONTAL]))
+		s.win.MoveAddChar(y, x, goncurses.Char(types.WallsASCII[types.CellWallHorizontal]))
 		if i%(maxColWidth*cols) == 0 {
-			s.win.MoveAddChar(y, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_CORNER]))
+			s.win.MoveAddChar(y, x, goncurses.Char(types.WallsASCII[types.CellWallCorner]))
 		}
 	}
-	s.win.ColorOff(types.COLOR_WALL)
+	s.win.ColorOff(types.ColorWall)
 	startY++
 
 	// print title and draw vertical lines enclosing the title
@@ -137,18 +137,18 @@ func (s *ScoreBoard) drawStatBoard(startX, startY int, title string, stats [][]s
 		x := startX + i
 		y := startY
 
-		s.win.ColorOn(types.GREEN_BLACK)
+		s.win.ColorOn(types.GreenBlack)
 		titleX := ((maxColWidth*cols)-len(title)/2)/2 + 1
 		if i == titleX {
 			s.win.MovePrint(y, titleX, title)
 		}
-		s.win.ColorOff(types.GREEN_BLACK)
+		s.win.ColorOff(types.GreenBlack)
 
-		s.win.ColorOn(types.COLOR_WALL)
+		s.win.ColorOn(types.ColorWall)
 		if i%(maxColWidth*cols) == 0 {
-			s.win.MoveAddChar(y, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_VERTICAL]))
+			s.win.MoveAddChar(y, x, goncurses.Char(types.WallsASCII[types.CellWallVertical]))
 		}
-		s.win.ColorOff(types.COLOR_WALL)
+		s.win.ColorOff(types.ColorWall)
 	}
 	startY++
 
@@ -158,24 +158,24 @@ func (s *ScoreBoard) drawStatBoard(startX, startY int, title string, stats [][]s
 			y := startY + row*maxRowHeight
 			x := startX + col*maxColWidth
 
-			s.win.ColorOn(types.COLOR_WALL)
-			s.win.MoveAddChar(y, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_CORNER]))
+			s.win.ColorOn(types.ColorWall)
+			s.win.MoveAddChar(y, x, goncurses.Char(types.WallsASCII[types.CellWallCorner]))
 
 			if col < cols {
 				for i := 1; i < maxColWidth; i++ {
-					s.win.MoveAddChar(y, x+i, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_HORIZONTAL]))
+					s.win.MoveAddChar(y, x+i, goncurses.Char(types.WallsASCII[types.CellWallHorizontal]))
 				}
 			}
 
 			if row < rows {
-				s.win.MoveAddChar(y+1, x, goncurses.Char(types.WALLS_ASCII[types.CELL_WALL_VERTICAL]))
+				s.win.MoveAddChar(y+1, x, goncurses.Char(types.WallsASCII[types.CellWallVertical]))
 			}
-			s.win.ColorOff(types.COLOR_WALL)
+			s.win.ColorOff(types.ColorWall)
 
 			if row == 0 { // blue black for the header
-				s.win.ColorOn(types.BLUE_BLACK)
+				s.win.ColorOn(types.BlueBlack)
 			} else { // white black for the rest
-				s.win.ColorOn(types.WHITE_BLACK)
+				s.win.ColorOn(types.WhiteBlack)
 			}
 
 			if row < rows && col < cols {
@@ -184,9 +184,9 @@ func (s *ScoreBoard) drawStatBoard(startX, startY int, title string, stats [][]s
 			}
 
 			if row == 0 {
-				s.win.ColorOff(types.BLUE_BLACK)
+				s.win.ColorOff(types.BlueBlack)
 			} else {
-				s.win.ColorOff(types.WHITE_BLACK)
+				s.win.ColorOff(types.WhiteBlack)
 			}
 
 		}

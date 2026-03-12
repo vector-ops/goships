@@ -3,10 +3,10 @@ package types
 type GameType string
 
 const (
-	PVE        GameType = "PVE"
-	PVP        GameType = "PVP"
-	UNSELECTED GameType = "unselected"
-	QUIT       GameType = "quit"
+	PvE        GameType = "PVE"
+	PvP        GameType = "PVP"
+	Unselected GameType = "unselected"
+	Quit       GameType = "quit"
 )
 
 type ShipType int
@@ -31,29 +31,29 @@ func (st ShipType) String() string {
 }
 
 const (
-	BATTLESHIP ShipType = iota
-	CRUISER
-	DESTROYER
-	SUBMARINE
-	AIRCRAFT_CARRIER
-	NONE
+	None ShipType = iota
+	Cruiser
+	Destroyer
+	Submarine
+	AircraftCarrier
+	Battleship
 )
 
 type Orientation int
 
 const (
-	VERTICAL Orientation = iota
-	HORIZONTAL
+	Vertical Orientation = iota
+	Horizontal
 )
 
 type WindowType int
 
 const (
-	PLAYER WindowType = iota
-	ENEMY
-	SCORE
-	GUIDE
-	MENU
+	Player WindowType = iota
+	Enemy
+	Score
+	Guide
+	Menu
 )
 
 type CellType int
@@ -78,74 +78,74 @@ func (ct CellType) String() string {
 }
 
 const (
-	CELL_CURSOR CellType = iota
-	CELL_SHIP
-	CELL_DESTROYED
-	CELL_MISS
-	CELL_WATER
-	CELL_BLANK
-	CELL_WALL_HORIZONTAL
-	CELL_WALL_VERTICAL
-	CELL_WALL_CORNER
-	CELL_WALL_TOP_LEFT
-	CELL_WALL_TOP_RIGHT
-	CELL_WALL_BOTTOM_LEFT
-	CELL_WALL_BOTTOM_RIGHT
-	CELL_WALL_TEE_LEFT
-	CELL_WALL_TEE_RIGHT
-	CELL_WALL_TEE_UP
-	CELL_WALL_TEE_DOWN
+	CellCursor CellType = iota
+	CellShip
+	CellDestroyed
+	CellMiss
+	CellWater
+	CellBlank
+	CellWallHorizontal
+	CellWallVertical
+	CellWallCorner
+	CellWallTopLeft
+	CellWallTopRight
+	CellWallBottomLeft
+	CellWallBottomRight
+	CellWallTeeLeft
+	CellWallTeeRight
+	CellWallTeeUp
+	CellWallTeeDown
 )
 
-var WALLS_BOX = map[CellType]rune{
-	CELL_WALL_HORIZONTAL:   0x2500, // ─
-	CELL_WALL_VERTICAL:     0x2502, // │
-	CELL_WALL_CORNER:       0x253C, // ┼
-	CELL_WALL_TOP_LEFT:     0x250C, // ┌
-	CELL_WALL_TOP_RIGHT:    0x2510, // ┐
-	CELL_WALL_BOTTOM_LEFT:  0x2514, // └
-	CELL_WALL_BOTTOM_RIGHT: 0x2518, // ┘
-	CELL_WALL_TEE_LEFT:     0x2524, // ┬
-	CELL_WALL_TEE_RIGHT:    0x251C, // ┴
-	CELL_WALL_TEE_UP:       0x2534, // ├
-	CELL_WALL_TEE_DOWN:     0x252C, // ┤
+var WallsBox = map[CellType]rune{
+	CellWallHorizontal:  0x2500, // ─
+	CellWallVertical:    0x2502, // │
+	CellWallCorner:      0x253C, // ┼
+	CellWallTopLeft:     0x250C, // ┌
+	CellWallTopRight:    0x2510, // ┐
+	CellWallBottomLeft:  0x2514, // └
+	CellWallBottomRight: 0x2518, // ┘
+	CellWallTeeLeft:     0x2524, // ┬
+	CellWallTeeRight:    0x251C, // ┴
+	CellWallTeeUp:       0x2534, // ├
+	CellWallTeeDown:     0x252C, // ┤
 }
 
-var WALLS_ASCII = map[CellType]rune{
-	CELL_WALL_HORIZONTAL:   '-', // ─
-	CELL_WALL_VERTICAL:     '|', // │
-	CELL_WALL_CORNER:       '+', // ┼
-	CELL_WALL_TOP_LEFT:     '+', // ┌
-	CELL_WALL_TOP_RIGHT:    '+', // ┐
-	CELL_WALL_BOTTOM_LEFT:  '+', // └
-	CELL_WALL_BOTTOM_RIGHT: '+', // ┘
-	CELL_WALL_TEE_LEFT:     '+', // ┬
-	CELL_WALL_TEE_RIGHT:    '+', // ┴
-	CELL_WALL_TEE_UP:       '+', // ├
-	CELL_WALL_TEE_DOWN:     '+', // ┤
+var WallsASCII = map[CellType]rune{
+	CellWallHorizontal:  '-', // ─
+	CellWallVertical:    '|', // │
+	CellWallCorner:      '+', // ┼
+	CellWallTopLeft:     '+', // ┌
+	CellWallTopRight:    '+', // ┐
+	CellWallBottomLeft:  '+', // └
+	CellWallBottomRight: '+', // ┘
+	CellWallTeeLeft:     '+', // ┬
+	CellWallTeeRight:    '+', // ┴
+	CellWallTeeUp:       '+', // ├
+	CellWallTeeDown:     '+', // ┤
 }
 
 const (
-	COLOR_WATER int16 = iota + 1
-	COLOR_WALL
-	COLOR_SHIP
-	COLOR_HIT
-	COLOR_MISS
-	COLOR_CURSOR
-	WHITE_BLACK
-	RED_BLACK
-	GREEN_BLACK
-	BLUE_BLACK
-	YELLOW_BLACK
-	MAGENTA_BLACK
-	CYAN_BLACK
-	WHITE_RED
-	WHITE_GREEN
-	WHITE_BLUE
-	BLACK_YELLOW
-	BLACK_CYAN
-	BLACK_MAGENTA
-	BLACK_RED
+	ColorWater int16 = iota + 1
+	ColorWall
+	ColorShip
+	ColorHit
+	ColorMiss
+	ColorCursor
+	WhiteBlack
+	RedBlack
+	GreenBlack
+	BlueBlack
+	YellowBlack
+	MagentaBlack
+	CyanBlack
+	WhiteRed
+	WhiteGreen
+	WhiteBlue
+	BlackYellow
+	BlackCyan
+	BlackMagenta
+	BlackRed
 )
 
 const (
@@ -165,11 +165,11 @@ type Ship struct {
 }
 
 var (
-	CRUISER_SPRITE    = []rune{'C', 'R', 'U', 'Z'}
-	BATTLESHIP_SPRITE = []rune{'B', 'B', 'S', 'H', 'P'}
-	DESTROYER_SPRITE  = []rune{'D', 'D', 'S'}
-	SUBMARINE_SPRITE  = []rune{'S', 'S'}
-	CARRIER_SPRITE    = []rune{'C', 'V', 'S', 'H', 'P'}
+	CruiserSprite    = []rune{'C', 'R', 'U', 'Z'}
+	BattleshipSprite = []rune{'B', 'B', 'S', 'H', 'P'}
+	DestroyerSprite  = []rune{'D', 'D', 'S'}
+	SubmarineSprite  = []rune{'S', 'S'}
+	CarrierSprite    = []rune{'C', 'V', 'S', 'H', 'P'}
 )
 
 type Cell struct {

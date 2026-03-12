@@ -34,10 +34,10 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, deb
 	}
 
 	gs.PlayerMap = NewMap(
-		calculateSubWindow(stdscr, types.PLAYER), // window
+		calculateSubWindow(stdscr, types.Player), // window
 		true,                                     // isPlayerMap
 		"PLAYER",                                 // title
-		types.GREEN_BLACK,                        // titleColor
+		types.GreenBlack,                         // titleColor
 		nil,                                      // startingGrid
 		nil,                                      // gridWidth
 		nil,                                      // gridHeight
@@ -45,10 +45,10 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, deb
 		debug,
 	)
 	gs.EnemyMap = NewMap(
-		calculateSubWindow(stdscr, types.ENEMY), // window
+		calculateSubWindow(stdscr, types.Enemy), // window
 		false,                                   // isPlayerMap
 		"ENEMY",                                 // title
-		types.RED_BLACK,                         // titleColor
+		types.RedBlack,                          // titleColor
 		nil,                                     // startingGrid
 		nil,                                     // gridWidth
 		nil,                                     // gridHeight
@@ -60,8 +60,8 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, deb
 		{Title: "PLAYER", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
 		{Title: "ENEMY", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
 	}, debug)
-	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.GUIDE), debug)
-	gs.menuWindow = calculateSubWindow(stdscr, types.MENU)
+	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.Guide), debug)
+	gs.menuWindow = calculateSubWindow(stdscr, types.Menu)
 	return gs
 }
 
@@ -160,31 +160,31 @@ func calculateSubWindow(win *goncurses.Window, wType types.WindowType) *goncurse
 	var h, w, y, x int
 
 	switch wType {
-	case types.PLAYER:
+	case types.Player:
 		h = my / 2
 		w = mx / 2
 		y = (my / 2) + 1
 		x = mx - (mx * 3 / 4)
 
-	case types.ENEMY:
+	case types.Enemy:
 		h = my / 2
 		w = mx / 2
 		y = 0
 		x = mx - (mx * 3 / 4)
 
-	case types.SCORE:
+	case types.Score:
 		h = my
 		w = mx / 4
 		y = 0
 		x = 0
 
-	case types.GUIDE:
+	case types.Guide:
 		h = my
 		w = mx / 4
 		y = 0
 		x = mx - (mx / 4)
 
-	case types.MENU:
+	case types.Menu:
 		h = my / 2
 		w = mx / 2
 		y = 0
