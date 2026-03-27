@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/vector-ops/goships/types"
 )
+
+type LoggerOption func(logger *Logger) error
 
 type Level string
 
@@ -25,11 +28,18 @@ const (
 	Error Level = "error"
 )
 
+// Destinations
+const (
+	File = iota
+	Channel
+)
+
 type Logger struct {
 	logCh chan Log
 
-	writeToFile bool
-	file        *os.File
+	file *os.File
+
+	dst []int
 }
 
 type Log struct {
@@ -39,26 +49,24 @@ type Log struct {
 	Color     int16     `json:"color"`
 }
 
-func NewLogger(logCh chan Log, writeToFile bool, fp *string) *Logger {
+func NewLogger(opts ...LoggerOption) (*Logger, error) {
 
-	var file *os.File
-	var err error
+	if len(opts) == 0 {
+		return nil, errors.New("no options provided")
+	}
 
-	if writeToFile && fp != nil {
-		file, err = os.OpenFile(*fp, os.O_RDWR, os.ModePerm)
-		if err != nil {
-			panic(err)
+	logger := new(Logger)
+
+	logger.dst = make([]int, 0)
+
+	for _, opt := range opts {
+		if err := opt(logger); err != nil {
+			return nil, err
 		}
-	} else {
-		writeToFile = false
 	}
 
-	return &Logger{
-		logCh: logCh,
+	return logger, nil
 
-		writeToFile: writeToFile,
-		file:        file,
-	}
 }
 
 func (l *Logger) Infof(msg string, vars ...any) {
@@ -78,7 +86,7 @@ func (l *Logger) Infof(msg string, vars ...any) {
 		Color:     types.WhiteBlack,
 	}
 
-	l.logCh <- log
+	l.writeToAllDst(log)
 
 }
 
@@ -99,7 +107,7 @@ func (l *Logger) Errorf(msg string, vars ...any) {
 		Color:     types.RedBlack,
 	}
 
-	l.logCh <- log
+	l.writeToAllDst(log)
 }
 
 func (l *Logger) Warnf(msg string, vars ...any) {
@@ -119,5 +127,54 @@ func (l *Logger) Warnf(msg string, vars ...any) {
 		Color:     types.YellowBlack,
 	}
 
-	l.logCh <- log
+	l.writeToAllDst(log)
+}
+
+func (l *Logger) writeToAllDst(log Log) error {
+
+	for _, dst := range l.dst {
+		switch dst {
+		case Channel:
+			l.logCh <- log
+		case File:
+		}
+	}
+
+	return nil
+}
+
+func WithLogChan(logCh chan Log) LoggerOption {
+	return func(logger *Logger) error {
+		if logCh == nil {
+			return errors.New("log channel cannot be nil")
+		}
+
+		logger.logCh = logCh
+
+		logger.dst = append(logger.dst, Channel)
+
+		return nil
+	}
+}
+
+func WithLogFile(fp string) LoggerOption {
+	return func(logger *Logger) error {
+
+		file, err := os.OpenFile(fp, os.O_RDWR, os.ModePerm)
+		if err != nil {
+			return err
+		}
+
+		logger.file = file
+
+		logger.dst = append(logger.dst, File)
+
+		return nil
+	}
+}
+
+func WithNoOp() LoggerOption {
+	return func(logger *Logger) error {
+		return nil
+	}
 }
