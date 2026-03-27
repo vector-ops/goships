@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/rthornton128/goncurses"
+	"github.com/vector-ops/goships/logger"
 	"github.com/vector-ops/goships/types"
 	"github.com/vector-ops/goships/utils"
 )
@@ -15,53 +16,80 @@ type GameState struct {
 	win          *goncurses.Window
 	debug        bool
 	keyInputChan chan goncurses.Key
+	logChan      chan logger.Log
+	logger       *logger.Logger
 
 	PlayerMap *Map
 	EnemyMap  *Map
 
 	ScoreBoard *ScoreBoard
 	Guide      *Guide
+	LogWindow  *LogWindow
 	menuWindow *goncurses.Window
 
 	playerHasSetShips bool
 }
 
 func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, debug bool) *GameState {
+	logCh := make(chan logger.Log, 1)
+
+	l := logger.NewLogger(logCh, false, nil)
+
 	gs := &GameState{
 		win:          stdscr,
 		debug:        debug,
 		keyInputChan: keyInputChan,
+		logChan:      logCh,
+		logger:       l,
 	}
 
+	gs.LogWindow = NewLogWindow(calculateSubWindow(stdscr, types.LogWindow, debug), logCh)
+
 	gs.PlayerMap = NewMap(
-		calculateSubWindow(stdscr, types.Player), // window
-		true,                                     // isPlayerMap
-		"PLAYER",                                 // title
-		types.GreenBlack,                         // titleColor
-		nil,                                      // startingGrid
-		nil,                                      // gridWidth
-		nil,                                      // gridHeight
-		true,                                     // enableKeyboard
+		calculateSubWindow(stdscr, types.Player, debug), // window
+		true,             // isPlayerMap
+		"PLAYER",         // title
+		types.GreenBlack, // titleColor
+		nil,              // startingGrid
+		nil,              // gridWidth
+		nil,              // gridHeight
+		true,             // enableKeyboard
 		debug,
+		l,
 	)
+
 	gs.EnemyMap = NewMap(
-		calculateSubWindow(stdscr, types.Enemy), // window
-		false,                                   // isPlayerMap
-		"ENEMY",                                 // title
-		types.RedBlack,                          // titleColor
-		nil,                                     // startingGrid
-		nil,                                     // gridWidth
-		nil,                                     // gridHeight
-		true,                                    // enableKeyboard
+		calculateSubWindow(stdscr, types.Enemy, debug), // window
+		false,          // isPlayerMap
+		"ENEMY",        // title
+		types.RedBlack, // titleColor
+		nil,            // startingGrid
+		nil,            // gridWidth
+		nil,            // gridHeight
+		true,           // enableKeyboard
 		debug,
+		l,
 	)
-	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.Score), []StatBoard{
+
+	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.Score, debug), []StatBoard{
 		{Title: "SCORE", StatHeader: []string{"Player", "Enemy"}, StatValues: []string{"0", "0"}},
 		{Title: "PLAYER", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
 		{Title: "ENEMY", StatHeader: []string{"Hits", "Misses"}, StatValues: []string{"0", "0"}},
 	}, debug)
-	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.Guide), debug)
-	gs.menuWindow = calculateSubWindow(stdscr, types.Menu)
+
+	gs.Guide = NewGuide(calculateSubWindow(stdscr, types.Guide, debug), debug)
+
+	gs.menuWindow = calculateSubWindow(stdscr, types.Menu, debug)
+
+	gs.EnemyMap.LogOn(ShipsPlaced)
+	gs.EnemyMap.LogOn(Hit)
+	gs.PlayerMap.LogOn(ShipsPlaced)
+	gs.PlayerMap.LogOn(Hit)
+
+	// l.Infof("The whale is a huge mammal living in the ocean.")
+	// l.Infof("Sperm whales fight and eat giant squids.")
+	l.Infof("Game started")
+
 	return gs
 }
 
@@ -109,20 +137,23 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 				}
 			}
 
-			err := gs.EnemyMap.Render(ctx)
-			if err != nil {
+			if err := gs.LogWindow.Render(ctx); err != nil {
 				return err
 			}
-			err = gs.PlayerMap.Render(ctx)
-			if err != nil {
+
+			if err := gs.EnemyMap.Render(ctx); err != nil {
 				return err
 			}
-			err = gs.ScoreBoard.Render(ctx)
-			if err != nil {
+
+			if err := gs.PlayerMap.Render(ctx); err != nil {
 				return err
 			}
-			err = gs.Guide.Render(ctx)
-			if err != nil {
+
+			if err := gs.ScoreBoard.Render(ctx); err != nil {
+				return err
+			}
+
+			if err := gs.Guide.Render(ctx); err != nil {
 				return err
 			}
 
@@ -139,6 +170,7 @@ func (gs *GameState) CloseResources() error {
 		gs.EnemyMap,
 		gs.ScoreBoard,
 		gs.Guide,
+		gs.LogWindow,
 	} {
 		if err := closer.Close(); err != nil {
 			errs = append(errs, err)
@@ -146,6 +178,7 @@ func (gs *GameState) CloseResources() error {
 	}
 
 	close(gs.keyInputChan)
+	close(gs.logChan)
 
 	if len(errs) > 0 {
 		return fmt.Errorf("failed to close resources: %v", errs)
@@ -154,7 +187,7 @@ func (gs *GameState) CloseResources() error {
 	return nil
 }
 
-func calculateSubWindow(win *goncurses.Window, wType types.WindowType) *goncurses.Window {
+func calculateSubWindow(win *goncurses.Window, wType types.WindowType, debug bool) *goncurses.Window {
 	my, mx := win.MaxYX()
 
 	var h, w, y, x int
@@ -163,7 +196,7 @@ func calculateSubWindow(win *goncurses.Window, wType types.WindowType) *goncurse
 	case types.Player:
 		h = my / 2
 		w = mx / 2
-		y = (my / 2) + 1
+		y = my / 2
 		x = mx - (mx * 3 / 4)
 
 	case types.Enemy:
@@ -179,7 +212,11 @@ func calculateSubWindow(win *goncurses.Window, wType types.WindowType) *goncurse
 		x = 0
 
 	case types.Guide:
-		h = my
+		if debug {
+			h = my / 2
+		} else {
+			h = my
+		}
 		w = mx / 4
 		y = 0
 		x = mx - (mx / 4)
@@ -189,7 +226,11 @@ func calculateSubWindow(win *goncurses.Window, wType types.WindowType) *goncurse
 		w = mx / 2
 		y = 0
 		x = mx - (mx * 3 / 4)
-
+	case types.LogWindow:
+		h = my / 2
+		w = mx / 4
+		y = my / 2
+		x = mx - (mx / 4)
 	}
 
 	mwin, err := goncurses.NewWindow(h, w, y, x)
