@@ -31,19 +31,31 @@ type GameState struct {
 }
 
 func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, debug bool) *GameState {
-	logCh := make(chan logger.Log, 1)
 
-	l := logger.NewLogger(logCh, false, nil)
+	l, err := logger.NewLogger(logger.WithNoOp())
+	if err != nil {
+		panic(err)
+	}
 
 	gs := &GameState{
 		win:          stdscr,
 		debug:        debug,
 		keyInputChan: keyInputChan,
-		logChan:      logCh,
 		logger:       l,
 	}
 
-	gs.LogWindow = NewLogWindow(calculateSubWindow(stdscr, types.LogWindow, debug), logCh)
+	if debug {
+		logCh := make(chan logger.Log, 1)
+
+		l, err := logger.NewLogger(logger.WithLogChan(logCh))
+		if err != nil {
+			panic(err)
+		}
+
+		gs.LogWindow = NewLogWindow(calculateSubWindow(stdscr, types.LogWindow, debug), logCh)
+		gs.logger = l
+		gs.logChan = logCh
+	}
 
 	gs.PlayerMap = NewMap(
 		calculateSubWindow(stdscr, types.Player, debug), // window
@@ -55,7 +67,7 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, deb
 		nil,              // gridHeight
 		true,             // enableKeyboard
 		debug,
-		l,
+		gs.logger,
 	)
 
 	gs.EnemyMap = NewMap(
@@ -68,7 +80,7 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, deb
 		nil,            // gridHeight
 		true,           // enableKeyboard
 		debug,
-		l,
+		gs.logger,
 	)
 
 	gs.ScoreBoard = NewScoreBoard(calculateSubWindow(stdscr, types.Score, debug), []StatBoard{
@@ -88,7 +100,7 @@ func NewGameState(stdscr *goncurses.Window, keyInputChan chan goncurses.Key, deb
 
 	// l.Infof("The whale is a huge mammal living in the ocean.")
 	// l.Infof("Sperm whales fight and eat giant squids.")
-	l.Infof("Game started")
+	gs.logger.Infof("Game started")
 
 	return gs
 }
@@ -137,8 +149,10 @@ func (gs *GameState) Render(ctx context.Context, cancel context.CancelFunc) erro
 				}
 			}
 
-			if err := gs.LogWindow.Render(ctx); err != nil {
-				return err
+			if gs.debug {
+				if err := gs.LogWindow.Render(ctx); err != nil {
+					return err
+				}
 			}
 
 			if err := gs.EnemyMap.Render(ctx); err != nil {
@@ -170,15 +184,21 @@ func (gs *GameState) CloseResources() error {
 		gs.EnemyMap,
 		gs.ScoreBoard,
 		gs.Guide,
-		gs.LogWindow,
 	} {
 		if err := closer.Close(); err != nil {
 			errs = append(errs, err)
 		}
 	}
 
+	if gs.LogWindow != nil {
+		gs.LogWindow.Close()
+	}
+
 	close(gs.keyInputChan)
-	close(gs.logChan)
+
+	if gs.logChan != nil {
+		close(gs.logChan)
+	}
 
 	if len(errs) > 0 {
 		return fmt.Errorf("failed to close resources: %v", errs)
