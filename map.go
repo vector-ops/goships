@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"slices"
+	"sync/atomic"
 
 	"github.com/rthornton128/goncurses"
+	"github.com/vector-ops/goships/logger"
 	"github.com/vector-ops/goships/types"
 	"github.com/vector-ops/goships/utils"
 )
@@ -16,6 +19,15 @@ const (
 	CellHeight        = 2
 	CellWidth         = 4
 	DefaultTotalShips = 5
+)
+
+// Events
+const (
+	Win = iota
+	ShipsPlaced
+	Turn
+	Hit
+	Miss
 )
 
 type Map struct {
@@ -35,6 +47,11 @@ type Map struct {
 	unplacedShips []types.ShipType
 	stats         *MapStats
 	turn          int64
+
+	logEvents []int
+
+	closeCh chan struct{}
+	logger  *logger.Logger
 }
 
 type MapStats struct {
@@ -67,7 +84,7 @@ type ShipStatus struct {
 	destroyed  bool
 }
 
-func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor int16, startingGrid *map[types.Position]types.Cell, gridWidth, gridHeight *int, enableKeyboard bool, debug bool) *Map {
+func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor int16, startingGrid *map[types.Position]types.Cell, gridWidth, gridHeight *int, enableKeyboard bool, debug bool, l *logger.Logger) *Map {
 	m := &Map{
 		win:            win,
 		debug:          debug,
@@ -80,6 +97,8 @@ func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor in
 		enableKeyboard: enableKeyboard,
 		isPlayerMap:    isPlayerMap,
 		unplacedShips:  []types.ShipType{types.AircraftCarrier, types.Battleship, types.Cruiser, types.Destroyer, types.Submarine},
+		logger:         l,
+		closeCh:        make(chan struct{}),
 	}
 
 	if startingGrid != nil {
@@ -108,6 +127,8 @@ func NewMap(win *goncurses.Window, isPlayerMap bool, title string, titleColor in
 	}
 
 	m.stats = mapStats
+
+	go m.eventLogger()
 
 	return m
 }
@@ -261,12 +282,15 @@ func (m *Map) Render(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	m.draw()
+
 	m.win.NoutRefresh()
 	return nil
 }
 
 func (m *Map) Close() error {
+	close(m.closeCh)
 	return m.win.Delete()
 }
 
@@ -290,7 +314,11 @@ func (m *Map) PlaceRandomShips() error {
 
 		sprite := utils.GetEntitySprite(shipType)
 
-		var startPosition types.Position
+		x := rand.Intn(m.gridWidth)
+		y := rand.Intn(m.gridHeight)
+
+		startPosition := types.Position{X: x, Y: y}
+
 		endPosition := utils.ExpectedEndPosition(startPosition, sprite, orientation)
 
 		for utils.CheckOverlap((*m.grid), types.Ship{StartPosition: startPosition, EndPosition: endPosition}) || !utils.ValidEntityPosition(types.Ship{StartPosition: startPosition, EndPosition: endPosition}, m.gridHeight, m.gridWidth) {
@@ -438,7 +466,7 @@ func (m *Map) draw() error {
 
 func (m *Map) placeShip(entity types.Ship, o types.Orientation) error {
 	if !utils.ValidEntityPosition(entity, m.gridHeight, m.gridWidth) {
-		return fmt.Errorf("Invalid entity position: %s, start: %d,%d", utils.GetShipType(entity.Type), entity.StartPosition.X, entity.StartPosition.Y)
+		return fmt.Errorf("invalid entity position: %s, start: %d,%d", utils.GetShipType(entity.Type), entity.StartPosition.X, entity.StartPosition.Y)
 	}
 
 	sprite := utils.GetEntitySprite(entity.Type)
@@ -497,7 +525,7 @@ func (m *Map) drawBorders() error {
 	my, mx := m.win.MaxYX()
 
 	if mx < m.gridWidth*CellWidth || my < m.gridHeight*CellHeight {
-		return fmt.Errorf("Window size is too small to accommodate the map. Map is %dx%d, window is %dx%d", m.gridWidth*CellWidth, m.gridHeight*CellHeight, mx, my)
+		return fmt.Errorf("window size is too small to accommodate the map. Map is %dx%d, window is %dx%d", m.gridWidth*CellWidth, m.gridHeight*CellHeight, mx, my)
 	}
 
 	// calculate the starting position for the drawBorders
@@ -537,4 +565,63 @@ func (m *Map) hasEmptyCells() bool {
 		}
 	}
 	return false
+}
+
+func (m *Map) eventLogger() {
+
+	loggedEvents := make([]int, 0)
+
+	prevVals := make(map[string]any)
+
+	for {
+		select {
+		case <-m.closeCh:
+			return
+		default:
+			for _, event := range m.logEvents {
+				switch event {
+				case ShipsPlaced:
+					if len(m.unplacedShips) == 0 && !slices.Contains(loggedEvents, ShipsPlaced) {
+						msg := fmt.Sprintf("%s has placed ships", m.title)
+						m.logger.Infof(msg)
+						loggedEvents = append(loggedEvents, ShipsPlaced)
+					}
+				case Turn:
+
+					prevTurn, ok := prevVals["turn"].(int64)
+					if !ok {
+						prevTurn = 0
+					}
+
+					turn :=
+						atomic.LoadInt64(&(m.turn))
+					if prevTurn != turn {
+						msg := fmt.Sprintf("%s's turn", m.title)
+						m.logger.Infof(msg)
+						prevVals["turn"] = turn
+					}
+
+				case Hit:
+					prevHits, ok := prevVals["hits"].(int)
+					if !ok {
+						prevHits = 0
+					}
+
+					hits := m.stats.Hits
+
+					if prevHits < hits {
+						msg := fmt.Sprintf("%s's ship was hit", m.title)
+						m.logger.Infof(msg)
+						prevVals["hits"] = hits
+					}
+
+				}
+
+			}
+		}
+	}
+}
+
+func (m *Map) LogOn(event int) {
+	m.logEvents = append(m.logEvents, event)
 }
