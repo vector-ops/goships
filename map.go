@@ -253,9 +253,8 @@ func (m *Map) HandleKeyInput(key goncurses.Key) {
 				m.cursor.content = utils.GetEntitySprite(*m.cursor.shipType)
 			}
 		} else {
-			// cell := (*m.grid)[m.cursor.startPosition]
-
-			if hit := m.hitCell(m.cursor.startPosition.X, m.cursor.startPosition.Y); hit {
+			if m.hittable(m.cursor.startPosition.X, m.cursor.startPosition.Y) {
+				m.hitCell(m.cursor.startPosition.X, m.cursor.startPosition.Y)
 				m.turn++
 			}
 		}
@@ -359,22 +358,38 @@ func (m *Map) HitRandomSpot() {
 		return
 	}
 
-	hit := false
+	hittable := false
 
-	for !hit {
+	var x int
+	var y int
 
-		x := rand.Intn(m.gridWidth)
-		y := rand.Intn(m.gridHeight)
+	for !hittable {
 
-		hit = m.hitCell(x, y)
+		x = rand.Intn(m.gridWidth)
+		y = rand.Intn(m.gridHeight)
+
+		hittable = m.hittable(x, y)
 	}
+
+	m.hitCell(x, y)
+
 	m.turn++
+}
+
+func (m *Map) hittable(x, y int) bool {
+
+	cell := (*m.grid)[types.Position{X: x, Y: y}]
+	if cell.Type == types.CellDestroyed || cell.Type == types.CellMiss {
+		return false
+	}
+
+	return true
 }
 
 func (m *Map) hitCell(x, y int) bool {
 	cell := (*m.grid)[types.Position{X: x, Y: y}]
 
-	if cell.Type == types.CellDestroyed || cell.Type == types.CellMiss {
+	if !m.hittable(x, y) {
 		return false
 	}
 
@@ -387,7 +402,10 @@ func (m *Map) hitCell(x, y int) bool {
 		}
 
 		m.stats.Misses++
+
+		return false
 	}
+
 	if cell.Type == types.CellShip {
 		(*m.grid)[types.Position{X: x, Y: y}] = types.Cell{
 			ShipType: cell.ShipType,
@@ -401,9 +419,11 @@ func (m *Map) hitCell(x, y int) bool {
 			m.stats.Ships[cell.ShipType].destroyed = true
 		}
 		m.stats.Hits++
+
+		return true
 	}
 
-	return true
+	return false
 }
 
 func (m *Map) draw() error {
