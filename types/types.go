@@ -53,6 +53,7 @@ const (
 	Enemy
 	Score
 	Guide
+	LogWindow
 	Menu
 )
 
