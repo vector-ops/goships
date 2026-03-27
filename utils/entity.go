@@ -2,6 +2,7 @@ package utils
 
 import "github.com/vector-ops/goships/types"
 
+// ValidEntityPosition checks if the ship position exceeds grid bounds
 func ValidEntityPosition(e types.Ship, gridHeight, gridWidth int) bool {
 	return e.StartPosition.X <= gridWidth && e.StartPosition.Y <= gridHeight && e.EndPosition.X <= gridWidth && e.EndPosition.Y <= gridHeight && e.StartPosition.X >= 0 && e.StartPosition.Y >= 0 && e.EndPosition.X >= 0 && e.EndPosition.Y >= 0
 }
