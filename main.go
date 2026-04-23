@@ -10,6 +10,7 @@ import (
 	_ "net/http/pprof"
 
 	gc "github.com/rthornton128/goncurses"
+	"github.com/vector-ops/goships/game"
 	"github.com/vector-ops/goships/types"
 	"github.com/vector-ops/goships/utils"
 )
@@ -91,7 +92,7 @@ func main() {
 
 	go utils.HandleKeyboardEvent(stdscr, cancel, ch)
 
-	game := NewGameState(stdscr, ch, debug)
+	game := game.NewGameState(stdscr, ch, debug)
 
 	// clear previous logs
 	utils.RemoveFilesByPattern("logs/*.log")

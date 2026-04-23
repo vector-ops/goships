@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"context"
@@ -246,6 +246,7 @@ func calculateSubWindow(win *goncurses.Window, wType types.WindowType, debug boo
 		w = mx / 2
 		y = 0
 		x = mx - (mx * 3 / 4)
+
 	case types.LogWindow:
 		h = my / 2
 		w = mx / 4
